@@ -13,39 +13,62 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Thread">
+      <UniqueIdentifier>{95f0e6ed-1bf5-41a4-b5d3-209a7e7840b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SharedPointer">
+      <UniqueIdentifier>{ff235f1f-253c-4b46-a751-eede0fa71b41}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{93fd9cfa-8e13-4fc8-9719-358fa92b8a00}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="targetver.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\..\..\src\thread\Thread.h">
+      <Filter>Thread</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\sharedpointer.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\..\..\src\thread\TimeUtil.h">
+      <Filter>Thread</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\synchronize.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\..\..\src\thread\Synchronize.h">
+      <Filter>Thread</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\weakpointer.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\..\..\src\SharedReferenceManager.h">
+      <Filter>SharedPointer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\synchronize_linux.inl">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\..\..\src\SharedPointer.h">
+      <Filter>SharedPointer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\synchronize_win.inl">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\sharedreferencemanager.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\..\..\src\Common\Typedefs.h">
+      <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\src\synchronize.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\..\..\src\thread\Thread.cpp">
+      <Filter>Thread</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\sharedreferencemanager.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\..\..\src\thread\TimeUtil.cpp">
+      <Filter>Thread</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\SharedReferenceManager.cpp">
+      <Filter>SharedPointer</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\src\thread\Synchronize_linux.inl">
+      <Filter>Thread</Filter>
+    </None>
+    <None Include="..\..\..\src\thread\Synchronize_win.inl">
+      <Filter>Thread</Filter>
+    </None>
+    <None Include="..\..\..\src\thread\Thread.inl">
+      <Filter>Thread</Filter>
+    </None>
+    <None Include="..\..\..\src\thread\TimeUtil.inl">
+      <Filter>Thread</Filter>
+    </None>
   </ItemGroup>
 </Project>

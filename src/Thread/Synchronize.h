@@ -37,6 +37,8 @@ namespace BR
 	private:
 		MutexBase &m_Mutex;
 	};
+
+
 }
 
 

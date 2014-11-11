@@ -1,7 +1,7 @@
 
 
 
-#include "synchronize.h"
+#include "Thread/synchronize.h"
 #include "sharedreferencemanager.h"
 
 

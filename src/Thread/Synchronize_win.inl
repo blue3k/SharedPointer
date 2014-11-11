@@ -115,5 +115,40 @@ namespace BR
 	};
 
 
+	class Event
+	{
+	public:
+
+		Event(bool isInitialySet = false, bool autoReset = true)
+		{
+			m_hEvent = CreateEvent(NULL, !autoReset, isInitialySet, NULL);
+		}
+
+		~Event()
+		{
+			if (m_hEvent)
+				CloseHandle(m_hEvent);
+		}
+
+		void Reset()
+		{
+			ResetEvent(m_hEvent);
+		}
+
+		void Set()
+		{
+			SetEvent(m_hEvent);
+		}
+
+		bool WaitEvent(UINT uiWaitTimeMs)
+		{
+			DWORD dwWaitRes = WaitForSingleObject(m_hEvent, uiWaitTimeMs);
+			return dwWaitRes == WAIT_OBJECT_0;
+		}
+
+	private:
+		HANDLE	m_hEvent;
+	};
+
 }
 
