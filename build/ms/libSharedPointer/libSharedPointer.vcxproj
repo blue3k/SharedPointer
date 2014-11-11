@@ -39,14 +39,19 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(ProjectDir)..\..\..\Lib\$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(ProjectDir)..\..\..\Lib\$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\;..\..\..\src;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -61,7 +66,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\;..\..\..\src;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -74,17 +79,23 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\src\sharedpointer.h" />
-    <ClInclude Include="..\..\..\src\sharedreferencemanager.h" />
-    <ClInclude Include="..\..\..\src\synchronize.h" />
-    <ClInclude Include="..\..\..\src\synchronize_linux.inl" />
-    <ClInclude Include="..\..\..\src\synchronize_win.inl" />
-    <ClInclude Include="..\..\..\src\weakpointer.h" />
-    <ClInclude Include="targetver.h" />
+    <ClInclude Include="..\..\..\src\Common\Typedefs.h" />
+    <ClInclude Include="..\..\..\src\SharedPointer.h" />
+    <ClInclude Include="..\..\..\src\SharedReferenceManager.h" />
+    <ClInclude Include="..\..\..\src\thread\Synchronize.h" />
+    <ClInclude Include="..\..\..\src\thread\Thread.h" />
+    <ClInclude Include="..\..\..\src\thread\TimeUtil.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\src\sharedreferencemanager.cpp" />
-    <ClCompile Include="..\..\..\src\synchronize.cpp" />
+    <ClCompile Include="..\..\..\src\SharedReferenceManager.cpp" />
+    <ClCompile Include="..\..\..\src\thread\Thread.cpp" />
+    <ClCompile Include="..\..\..\src\thread\TimeUtil.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\src\thread\Synchronize_linux.inl" />
+    <None Include="..\..\..\src\thread\Synchronize_win.inl" />
+    <None Include="..\..\..\src\thread\Thread.inl" />
+    <None Include="..\..\..\src\thread\TimeUtil.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
