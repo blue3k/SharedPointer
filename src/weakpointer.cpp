@@ -1,6 +1,0 @@
-
-
-#include "weakpointer.h"
-
-
-

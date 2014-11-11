@@ -75,7 +75,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\sharedpointer.h" />
-    <ClInclude Include="..\..\..\src\sharedpointermanager.h" />
+    <ClInclude Include="..\..\..\src\sharedreferencemanager.h" />
     <ClInclude Include="..\..\..\src\synchronize.h" />
     <ClInclude Include="..\..\..\src\synchronize_linux.inl" />
     <ClInclude Include="..\..\..\src\synchronize_win.inl" />
@@ -83,10 +83,8 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\src\sharedpointer.cpp" />
-    <ClCompile Include="..\..\..\src\sharedpointermanager.cpp" />
+    <ClCompile Include="..\..\..\src\sharedreferencemanager.cpp" />
     <ClCompile Include="..\..\..\src\synchronize.cpp" />
-    <ClCompile Include="..\..\..\src\weakpointer.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

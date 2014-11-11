@@ -1,7 +1,7 @@
 
 
 #include "synchronize.h"
-#include "sharedpointermanager.h"
+#include "sharedreferencemanager.h"
 
 namespace BR
 {
@@ -9,7 +9,9 @@ namespace BR
 
 	class SharedPointer
 	{
-		ObjectRef *m_pObject;
+	private:
+		mutable SharedObject *m_pObject;
+
 	public:
 
 		SharedPointer()
@@ -17,26 +19,70 @@ namespace BR
 		{
 		}
 
-		SharedPointer(ObjectRef* pRef)
+		SharedPointer(SharedObject* pRef)
 			:m_pObject(pRef)
 		{
 			if (m_pObject != nullptr)
-				Interlocked::Increment(m_pObject->ReferenceCount);
+				Interlocked::Increment(m_pObject->m_ReferenceCount);
 		}
 
 		~SharedPointer()
 		{
-			if (m_pObject != nullptr)
-			{
-				auto decValue = Interlocked::Decrement(m_pObject->ReferenceCount);
-				if (decValue == 0)
-				{
-					SharedPointerManager::FreeSharedReference(m_pObject);
-				}
-				m_pObject = nullptr;
-			}
+			ReleaseReference();
 		}
 
+		void ReleaseReference() const
+		{
+			if (m_pObject == nullptr)
+				return;
+
+			auto decValue = Interlocked::Decrement(m_pObject->m_ReferenceCount);
+			if (decValue == 0)
+			{
+				if (m_pObject->m_ReferenceManagerObject != nullptr)
+					m_pObject->m_ReferenceManagerObject->FreeSharedReference(m_pObject);
+				else
+					delete m_pObject;
+			}
+			m_pObject = nullptr;
+		}
+
+		operator SharedObject*()
+		{
+			return m_pObject;
+		}
+
+		operator const SharedObject*() const
+		{
+			return m_pObject;
+		}
+
+
+		SharedPointer& operator = (SharedObject* pRef)
+		{
+			ReleaseReference();
+
+			if (pRef == nullptr || pRef->GetReferenceCount() == 0)
+				return *this;
+
+			m_pObject = pRef;
+
+			if (m_pObject != nullptr)
+				Interlocked::Increment(m_pObject->m_ReferenceCount);
+
+			return *this;
+		}
+
+
+		bool operator == (SharedObject* pRef) const
+		{
+			return m_pObject == pRef;
+		}
+
+		bool operator != (SharedObject* pRef) const
+		{
+			return m_pObject != pRef;
+		}
 	};
 
 }
