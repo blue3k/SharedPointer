@@ -37,9 +37,9 @@ Thread::PRIORITY Thread::GetPriority()
 
 
 // Get end event handle
-HANDLE Thread::GetKillEvent()
+Event& Thread::GetKillEvent()
 {
-	return m_hKillEvent;
+	return m_KillEvent;
 }
 
 

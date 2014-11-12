@@ -12,16 +12,16 @@ namespace BR
 	{
 	private:
 		// reference counter for shared references
-		Interlocked::CounterType m_ReferenceCount;
+		volatile Interlocked::CounterType m_ReferenceCount;
 
 		// reference counter for weak references
-		Interlocked::CounterType m_WeakReferenceCount;
+		volatile Interlocked::CounterType m_WeakReferenceCount;
 
 		// reference counter for manager reference
-		Interlocked::CounterType m_ManagerReferenceCount;
+		volatile Interlocked::CounterType m_ManagerReferenceCount;
 
 		// Is disposed
-		bool m_IsDisposed;
+		volatile bool m_IsDisposed;
 
 		// reference manager object
 		SharedReferenceManager *m_ReferenceManagerObject;
@@ -40,8 +40,10 @@ namespace BR
 
 		virtual ~SharedObject()
 		{
-
+			assert(GetReferenceCount() == 0 && GetWeakReferenceCount() == 0);
 		}
+
+		inline bool							GetIsDisposed()						{ return m_IsDisposed;  }
 
 		inline Interlocked::CounterType		GetReferenceCount()					{ return m_ReferenceCount; }
 		inline Interlocked::CounterType		GetWeakReferenceCount()				{ return m_WeakReferenceCount; }

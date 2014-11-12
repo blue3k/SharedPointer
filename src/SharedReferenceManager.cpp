@@ -46,7 +46,7 @@ namespace BR
 			return;
 
 		MutexScopeLock localLock(m_Mutex);
-		Interlocked::Increment(pObj->m_ManagerReferenceCount);
+		//Interlocked::Increment(pObj->m_ManagerReferenceCount);
 		m_FreeQueue.push(pObj);
 	}
 
@@ -55,8 +55,11 @@ namespace BR
 		if (pObj == nullptr)
 			return;
 
+		//if (pObj->GetReferenceCount() > 0)
+		//	return;
+
 		MutexScopeLock localLock(m_Mutex);
-		Interlocked::Increment(pObj->m_ManagerReferenceCount);
+		//Interlocked::Increment(pObj->m_ManagerReferenceCount);
 		m_FreeQueue.push(pObj);
 	}
 
@@ -76,11 +79,12 @@ namespace BR
 
 			auto managerRefCount = Interlocked::Decrement(pObj->m_ManagerReferenceCount);
 			// it's queued more than once. leave this object for later operation
-			if (managerRefCount > 0) continue;
+			if (managerRefCount > 0)
+				continue;
 			assert(managerRefCount >= 0);
 
 			// skip not released pointers
-			if (pObj->m_ReferenceCount > 0)
+			if (pObj->GetReferenceCount() > 0)
 				continue;
 
 			// dispose if main reference counter became zero
@@ -91,17 +95,22 @@ namespace BR
 			}
 
 			// somebody is still using this object pointer
-			if (pObj->m_WeakReferenceCount > 0)
+			if (pObj->GetWeakReferenceCount() > 0)
 				continue;
+
+			_ReadBarrier();
 
 			// final check to prevent ABA reference count problem
 			if (pObj->m_ManagerReferenceCount > 0)
 				continue;
 
 			// no one is using this object pointer. We are good to release it
+			assert(pObj->GetReferenceCount() == 0 && pObj->GetWeakReferenceCount() == 0);
 			delete pObj;
 		}
 
+
+		_CrtCheckMemory();
 	}
 
 }

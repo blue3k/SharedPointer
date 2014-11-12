@@ -47,8 +47,7 @@ namespace Util {
 				// 50ms will be the precision of our timer
 				ULONG loopInterval = UpdateInterval( 50 );
 
-				DWORD dwWaitRes = WaitForSingleObject( GetKillEvent(), loopInterval );
-				if( dwWaitRes == WAIT_OBJECT_0 ) 
+				if (GetKillEvent().WaitEvent(loopInterval))
 				{
 					// Kill Event signaled
 					break;
@@ -82,19 +81,8 @@ namespace Util {
 		timeStruct.tm_mday = 1;
 		
 		m_ullUTCOffset = (ULONGLONG)_mkgmtime64( &timeStruct );
-		//m_ullUTCOffset = 0;
 
 		UpdateTimer();
-
-		//__time64_t now;
-		//tm nowStruct;
-		//memset(&nowStruct, 0, sizeof(struct tm));
-
-		//now = _time64( &now );
-		//_gmtime64_s( &nowStruct, &now );
-
-		//Assert( nowStruct.tm_yday == 144);
-
 	}
 
 	Time_WIN32::~Time_WIN32()

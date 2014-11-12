@@ -33,15 +33,11 @@ m_uiThreadID(0),
 m_threadPriority(PRIORITY_NORMAL),
 m_ulPreTime(0)
 {
-	m_hKillEvent = CreateEvent( NULL, FALSE, FALSE, NULL );
 }
 
 Thread::~Thread()
 {
 	Stop( true );
-
-	if( m_hKillEvent )
-		CloseHandle( m_hKillEvent );
 }
 
 // Get/Set Thread Priority
@@ -110,8 +106,7 @@ ULONG Thread::UpdateInterval( ULONG ulExpectedInterval )
 
 bool Thread::CheckKillEvent( DWORD dwWaitTime )
 {
-	DWORD dwWaitRes = WaitForSingleObject( GetKillEvent(), dwWaitTime );
-	return dwWaitRes == WAIT_OBJECT_0;
+	return GetKillEvent().WaitEvent(dwWaitTime);
 }
 
 // thread Controlling
@@ -122,7 +117,7 @@ void Thread::Start()
 
 	if( m_uiThread == 0 )
 	{
-		ResetEvent( m_hKillEvent );
+		GetKillEvent().Reset();
 
 		m_uiThread = _beginthreadex( NULL, 0, ThreadFunc, this, 0, &m_uiThreadID );
 		_ASSERTE( m_uiThread != 0 );
@@ -139,7 +134,7 @@ void Thread::Stop( bool bSendKillEvt )
 		if( bSendKillEvt )
 		{
 			// Set close event
-			SetEvent( m_hKillEvent );
+			GetKillEvent().Set();
 		}
 
 		long waitCount = 0;
