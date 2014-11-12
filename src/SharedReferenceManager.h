@@ -38,6 +38,11 @@ namespace BR
 
 		}
 
+		virtual ~SharedObject()
+		{
+
+		}
+
 		inline Interlocked::CounterType		GetReferenceCount()					{ return m_ReferenceCount; }
 		inline Interlocked::CounterType		GetWeakReferenceCount()				{ return m_WeakReferenceCount; }
 		inline Interlocked::CounterType		GetManagerReferenceCount()			{ return m_ManagerReferenceCount; }

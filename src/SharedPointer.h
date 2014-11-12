@@ -13,7 +13,7 @@ namespace BR
 
 	class SharedPointer
 	{
-	private:
+	protected:
 		mutable SharedObject *m_pObject;
 
 	public:
@@ -89,6 +89,31 @@ namespace BR
 		}
 	};
 
+	template<class ClassType>
+	class SharedPointerT : public SharedPointer
+	{
+	public:
+		SharedPointerT()
+			:SharedPointer()
+		{
+		}
+
+		SharedPointerT(ClassType* pRef)
+			:SharedPointer(pRef)
+		{
+		}
+
+		operator ClassType*()
+		{
+			return (ClassType*)m_pObject;
+		}
+
+		operator const ClassType*() const
+		{
+			return (ClassType*)m_pObject;
+		}
+	};
+
 
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -98,7 +123,7 @@ namespace BR
 
 	class WeakPointer
 	{
-	private:
+	protected:
 
 		mutable SharedObject *m_pObject;
 
@@ -167,6 +192,33 @@ namespace BR
 				Interlocked::Increment(m_pObject->m_ReferenceCount);
 
 			return *this;
+		}
+
+	};
+
+	template<class ClassType>
+	class WeakPointerT : public WeakPointer
+	{
+	public:
+		WeakPointerT()
+			:WeakPointer()
+		{
+		}
+
+		WeakPointerT(const WeakPointerT<typename ClassType>& src)
+			:WeakPointer(src)
+		{
+		}
+
+
+		operator SharedPointerT<ClassType>()
+		{
+			return SharedPointerT(m_pObject);
+		}
+
+		operator const SharedPointerT<ClassType>() const
+		{
+			return SharedPointerT<ClassType>(m_pObject);
 		}
 
 	};
