@@ -5,6 +5,7 @@
 
 namespace BR
 {
+	class WeakPointer;
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//
@@ -13,7 +14,7 @@ namespace BR
 
 	class SharedPointer
 	{
-	private:
+	protected:
 		mutable SharedObject *m_pObject;
 
 	public:
@@ -61,6 +62,10 @@ namespace BR
 			return m_pObject;
 		}
 
+		WeakPointer GetWeakPointer();
+
+		const WeakPointer GetWeakPointer() const;
+
 
 		SharedPointer& operator = (SharedObject* pRef)
 		{
@@ -89,6 +94,41 @@ namespace BR
 		}
 	};
 
+	template<class ClassType>
+	class SharedPointerT : public SharedPointer
+	{
+	public:
+		SharedPointerT()
+			:SharedPointer()
+		{
+		}
+
+		SharedPointerT(ClassType* pRef)
+			:SharedPointer(pRef)
+		{
+		}
+
+		operator ClassType*()
+		{
+			return (ClassType*)m_pObject;
+		}
+
+		operator const ClassType*() const
+		{
+			return (ClassType*)m_pObject;
+		}
+
+		ClassType* operator ->()
+		{
+			return (ClassType*)m_pObject;
+		}
+
+		ClassType* operator ->() const
+		{
+			return (ClassType*)m_pObject;
+		}
+	};
+
 
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -98,7 +138,7 @@ namespace BR
 
 	class WeakPointer
 	{
-	private:
+	protected:
 
 		mutable SharedObject *m_pObject;
 
@@ -167,6 +207,47 @@ namespace BR
 				Interlocked::Increment(m_pObject->m_ReferenceCount);
 
 			return *this;
+		}
+
+	};
+
+	template<class ClassType>
+	class WeakPointerT : public WeakPointer
+	{
+	public:
+		WeakPointerT()
+			:WeakPointer()
+		{
+		}
+
+		WeakPointerT(const SharedPointerT<typename ClassType>& src)
+			:WeakPointer((ClassType*)(const ClassType*)src)
+		{
+		}
+
+		WeakPointerT(const WeakPointerT<typename ClassType>& src)
+			:WeakPointer(src)
+		{
+		}
+
+		SharedPointerT<ClassType> ToShared()
+		{
+			return SharedPointerT<ClassType>((ClassType*)m_pObject);
+		}
+
+		const SharedPointerT<ClassType> ToShared() const 
+		{
+			return SharedPointerT<ClassType>((ClassType*)m_pObject);
+		}
+
+		operator SharedPointerT<ClassType>()
+		{
+			return SharedPointerT<ClassType>((ClassType*)m_pObject);
+		}
+
+		operator const SharedPointerT<ClassType>() const
+		{
+			return SharedPointerT<ClassType>((ClassType*)m_pObject);
 		}
 
 	};

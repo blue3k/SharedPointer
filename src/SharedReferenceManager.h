@@ -1,4 +1,4 @@
-
+#pragma once
 
 #include "Thread/Synchronize.h"
 #include <queue>
@@ -34,6 +34,11 @@ namespace BR
 			, m_ManagerReferenceCount(0)
 			, m_IsDisposed(false)
 			, m_ReferenceManagerObject(nullptr)
+		{
+
+		}
+
+		virtual ~SharedObject()
 		{
 
 		}

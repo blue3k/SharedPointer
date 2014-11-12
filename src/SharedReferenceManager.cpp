@@ -2,12 +2,26 @@
 
 
 #include "Thread/synchronize.h"
-#include "sharedreferencemanager.h"
-
+#include "SharedReferenceManager.h"
+#include "SharedPointer.h"
 
 
 namespace BR
 {
+
+
+	WeakPointer SharedPointer::GetWeakPointer()
+	{
+		return WeakPointer(m_pObject);
+	}
+
+	const WeakPointer SharedPointer::GetWeakPointer() const
+	{
+		return WeakPointer(m_pObject);
+	}
+
+
+
 	/////////////////////////////////////////////////////////////////////////////////////////////////
 	//
 	//	Internal implementation
