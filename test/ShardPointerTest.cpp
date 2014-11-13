@@ -13,9 +13,9 @@
 
 
 
-#define MAX_TEST_ID      50
+#define MAX_TEST_ID      60
 #define MAX_ACCESS_COUNT 10
-#define MAX_GROUP_ONE    5
+#define MAX_GROUP_ONE    10
 #define MAX_GROUP_TWO    10
 
 class SharedObjectType : public BR::SharedObject
@@ -55,8 +55,6 @@ public:
 	{
 		while (1)
 		{
-			//_CrtCheckMemory();
-
 			BR::SharedPointerT<SharedObjectType> localShared;
 			{
 				BR::MutexScopeLock scopeLock(stm_StorageLock);

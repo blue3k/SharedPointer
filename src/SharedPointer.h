@@ -50,20 +50,22 @@ namespace BR
 
 			assert(m_pObject->m_ReferenceCount > 0);
 
-			Interlocked::Increment(m_pObject->m_ManagerReferenceCount);
+			Interlocked::Increment(m_pObject->m_ManageCount);
 
 			auto decValue = Interlocked::Decrement(m_pObject->m_ReferenceCount);
 			if (decValue <= 0)
 			{
-				assert(m_pObject->m_ManagerReferenceCount < 2);
 				if (m_pObject->m_ReferenceManagerObject != nullptr)
+				{
 					m_pObject->m_ReferenceManagerObject->FreeSharedReference(m_pObject);
+					Interlocked::Decrement(m_pObject->m_ManageCount);
+				}
 				else
 					delete m_pObject;
 			}
 			else
 			{
-				Interlocked::Decrement(m_pObject->m_ManagerReferenceCount);
+				Interlocked::Decrement(m_pObject->m_ManageCount);
 			}
 			m_pObject = nullptr;
 		}
@@ -145,13 +147,7 @@ namespace BR
 		{
 			return (ClassType*)m_pObject;
 		}
-/*
-		SharedPointerT<ClassType>& operator = (SharedObject* pRef)
-		{
-			__super::operator = (pRef);
-			return *this;
-		}
-*/
+
 		SharedPointerT<ClassType>& operator = (const SharedPointerT<ClassType>& src)
 		{
 			__super::operator = (src);
@@ -205,19 +201,22 @@ namespace BR
 				return;
 
 			// increase manager reference first
-			Interlocked::Increment(m_pObject->m_ManagerReferenceCount);
+			Interlocked::Increment(m_pObject->m_ManageCount);
 
 			auto decValue = Interlocked::Decrement(m_pObject->m_WeakReferenceCount);
 			if (decValue <= 0)
 			{
 				if (m_pObject->m_ReferenceManagerObject != nullptr)
+				{
 					m_pObject->m_ReferenceManagerObject->FreeWeakReference(m_pObject);
+					Interlocked::Decrement(m_pObject->m_ManageCount);
+				}
 				else
 					delete m_pObject;
 			}
 			else
 			{
-				Interlocked::Decrement(m_pObject->m_ManagerReferenceCount);
+				Interlocked::Decrement(m_pObject->m_ManageCount);
 			}
 			m_pObject = nullptr;
 		}

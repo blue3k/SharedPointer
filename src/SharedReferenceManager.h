@@ -18,6 +18,7 @@ namespace BR
 		volatile Interlocked::CounterType m_WeakReferenceCount;
 
 		// reference counter for manager reference
+		volatile Interlocked::CounterType m_ManageCount;
 		volatile Interlocked::CounterType m_ManagerReferenceCount;
 
 		// Is disposed
@@ -72,7 +73,7 @@ namespace BR
 	{
 	private:
 
-		// Mutex for thread safe
+		// Mutex for thread safe queue
 		Mutex m_Mutex;
 
 		// STD Queue, If you wnat to use optimal solution, you should change the queue and mutex implementation for you
