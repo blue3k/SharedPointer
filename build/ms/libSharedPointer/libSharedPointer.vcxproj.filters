@@ -45,6 +45,15 @@
     <ClInclude Include="..\..\..\src\Common\Typedefs.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\Common\BrAssert.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Common\ClassUtil.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\Thread\SystemSynchronize.h">
+      <Filter>Thread</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\thread\Thread.cpp">
@@ -56,18 +65,30 @@
     <ClCompile Include="..\..\..\src\SharedReferenceManager.cpp">
       <Filter>SharedPointer</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\SharedObject.cpp">
+      <Filter>SharedPointer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\thread\Synchronize_linux.inl">
-      <Filter>Thread</Filter>
-    </None>
-    <None Include="..\..\..\src\thread\Synchronize_win.inl">
-      <Filter>Thread</Filter>
-    </None>
     <None Include="..\..\..\src\thread\Thread.inl">
       <Filter>Thread</Filter>
     </None>
     <None Include="..\..\..\src\thread\TimeUtil.inl">
+      <Filter>Thread</Filter>
+    </None>
+    <None Include="..\..\..\src\Thread\SystemSynchronize_linux.inl">
+      <Filter>Thread</Filter>
+    </None>
+    <None Include="..\..\..\src\Thread\SystemSynchronize_win.inl">
+      <Filter>Thread</Filter>
+    </None>
+    <None Include="..\..\..\src\Thread\Intrinsic_linux.inl">
+      <Filter>Thread</Filter>
+    </None>
+    <None Include="..\..\..\src\Thread\Intrinsic_win.inl">
+      <Filter>Thread</Filter>
+    </None>
+    <None Include="..\..\..\src\Thread\Synchronize.inl">
       <Filter>Thread</Filter>
     </None>
   </ItemGroup>

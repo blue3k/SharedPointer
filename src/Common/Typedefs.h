@@ -21,13 +21,14 @@
 #define NOMINMAX
 #endif 
 
-
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
 #include <crtdbg.h>
 #include <SDKDDKVer.h>
 #include <new.h>
 #include <string.h>
 #include <stdio.h>
-#include <stdlib.h>
+//#include <stdlib.h>
 #include <time.h>
 #include <limits.h>
 #include <stddef.h>
@@ -69,7 +70,7 @@
 #include <queue>
 #include <intrin.h>
 #include <emmintrin.h>
-
+#include <assert.h>
 
 #include <functional>
 

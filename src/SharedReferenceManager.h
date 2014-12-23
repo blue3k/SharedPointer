@@ -1,39 +1,79 @@
+////////////////////////////////////////////////////////////////////////////////
+// 
+// CopyRight (c) 2014 MadK
+// 
+// Author : KyungKun Ko
+//
+// Description : Shared pointer
+//
+////////////////////////////////////////////////////////////////////////////////
+
 #pragma once
 
 #include "Thread/Synchronize.h"
-#include <queue>
+//#include "Common/PageQueue.h"
+//#include "Common/MemoryPool.h"
+#include <concurrent_queue.h>
+#include <concurrent_unordered_map.h>
 
 
 namespace BR
 {
 	class SharedReferenceManager;
+	class SharedPointer;
 
+	// Shared object base
 	class SharedObject
 	{
+	public:
+
+		enum class SharedObjectState : LONG
+		{
+			None,
+			Instanced,
+			LockedForSharedReferencing,
+			Disposing,
+			Disposed,
+			Deleted
+		};
+
 	private:
 		// reference counter for shared references
-		volatile Interlocked::CounterType m_ReferenceCount;
+		volatile mutable Interlocked::CounterType m_ReferenceCount;
 
 		// reference counter for weak references
-		volatile Interlocked::CounterType m_WeakReferenceCount;
+		volatile mutable Interlocked::CounterType m_WeakReferenceCount;
 
 		// reference counter for manager reference
-		volatile Interlocked::CounterType m_ManageCount;
-		volatile Interlocked::CounterType m_ManagerReferenceCount;
+		volatile mutable Interlocked::CounterType m_ManageCount;
+		volatile mutable Interlocked::CounterType m_ManagerReferenceCount;
 
-		// Is disposed
-		volatile bool m_IsDisposed;
+		// Object statue
+		volatile mutable SharedObjectState m_SharedObjectState;
 
 		// reference manager object
 		SharedReferenceManager *m_ReferenceManagerObject;
 
 	public:
 
+#ifdef REFERENCE_DEBUG_TRACKING
+
+		long DeletedObjects = 0;
+
+		volatile const char* LatestReleaseFile;
+		volatile int LatestReleaseLine;
+		volatile mutable SharedObjectState LatestReleaseState;
+
+		volatile mutable const char* LatestQueueProcessResult;
+
+#endif
+
 		SharedObject()
 			: m_ReferenceCount(0)
 			, m_WeakReferenceCount(0)
+			, m_ManageCount(0)
 			, m_ManagerReferenceCount(0)
-			, m_IsDisposed(false)
+			, m_SharedObjectState(SharedObjectState::Instanced)
 			, m_ReferenceManagerObject(nullptr)
 		{
 
@@ -44,24 +84,43 @@ namespace BR
 			assert(GetReferenceCount() == 0 && GetWeakReferenceCount() == 0);
 		}
 
-		inline bool							GetIsDisposed()						{ return m_IsDisposed;  }
+		inline bool							GetIsDisposed() const					{ return m_SharedObjectState == SharedObjectState::Disposed || m_SharedObjectState == SharedObjectState::Disposing; }
 
-		inline Interlocked::CounterType		GetReferenceCount()					{ return m_ReferenceCount; }
-		inline Interlocked::CounterType		GetWeakReferenceCount()				{ return m_WeakReferenceCount; }
-		inline Interlocked::CounterType		GetManagerReferenceCount()			{ return m_ManagerReferenceCount; }
+		inline Interlocked::CounterType		GetReferenceCount() const				{ return m_ReferenceCount; }
+		inline Interlocked::CounterType		GetWeakReferenceCount() const			{ return m_WeakReferenceCount; }
+		inline Interlocked::CounterType		GetManagerReferenceCount() const		{ return m_ManagerReferenceCount; }
 
-		inline SharedReferenceManager*		GetReferenceManager()				{ return m_ReferenceManagerObject; }
+		inline SharedReferenceManager*		GetReferenceManager()					{ return m_ReferenceManagerObject; }
 
+		long TestID;
 
-		virtual void Dispose()
-		{
-			m_IsDisposed = true;
-		}
+		virtual void Dispose() {}
+
+	private:
+
+		void AddReference() const;
+		void ReleaseReference() const;
+
+		void AddWeakReference() const;
+		void ReleaseWeakReference() const;
+
+		void ReleaseReference_ByManager(volatile Interlocked::CounterType& referenceCounter
+#ifdef REFERENCE_DEBUG_TRACKING
+			, const char* fileName, int lineNumber
+#endif
+			) const;
+		void ReleaseReference_ByItself(volatile Interlocked::CounterType& referenceCounter) const;
+
+		void GetSharedPointer(SharedPointer& shardPointer) const;
+
+		//void Dispose_Inter();
 
 		friend class SharedReferenceManager;
 		friend class SharedPointer;
 		friend class WeakPointer;
 	};
+
+	//extern template class PageQueue<SharedObject*>;
 
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -73,14 +132,14 @@ namespace BR
 	{
 	private:
 
-		// Mutex for thread safe queue
-		Mutex m_Mutex;
-
-		// STD Queue, If you wnat to use optimal solution, you should change the queue and mutex implementation for you
-		std::queue<SharedObject*> m_FreeQueue;
+		// Free item queue
+		concurrency::concurrent_queue<SharedObject*> m_FreeQueue;
 
 		// Linked Object counter 
 		Interlocked::CounterType m_ObjectCount;
+
+	public:
+		Concurrency::concurrent_unordered_map<UINT, SharedObject*> m_PendingFreeObjects;
 
 	public:
 
@@ -99,14 +158,16 @@ namespace BR
 		void RegisterSharedObject(SharedObject* pSharedObject);
 
 		// Free shared object
-		void FreeSharedReference(SharedObject* pObj);
-
-		// free shared object
-		void FreeWeakReference(SharedObject* pObj);
+		void FreeSharedReference(SharedObject* pObj
+#ifdef REFERENCE_DEBUG_TRACKING
+			, const char* fileName, int lineNumber
+#endif
+			);
 
 		// Garbagte Collect free Pointers
-		void FreePendingDelete();
+		void UpdateReferenceManager();
 	};
+
 
 }
 

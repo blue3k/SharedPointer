@@ -79,21 +79,28 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\src\Common\BrAssert.h" />
+    <ClInclude Include="..\..\..\src\Common\ClassUtil.h" />
     <ClInclude Include="..\..\..\src\Common\Typedefs.h" />
     <ClInclude Include="..\..\..\src\SharedPointer.h" />
     <ClInclude Include="..\..\..\src\SharedReferenceManager.h" />
     <ClInclude Include="..\..\..\src\thread\Synchronize.h" />
+    <ClInclude Include="..\..\..\src\Thread\SystemSynchronize.h" />
     <ClInclude Include="..\..\..\src\thread\Thread.h" />
     <ClInclude Include="..\..\..\src\thread\TimeUtil.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\src\SharedObject.cpp" />
     <ClCompile Include="..\..\..\src\SharedReferenceManager.cpp" />
     <ClCompile Include="..\..\..\src\thread\Thread.cpp" />
     <ClCompile Include="..\..\..\src\thread\TimeUtil.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\thread\Synchronize_linux.inl" />
-    <None Include="..\..\..\src\thread\Synchronize_win.inl" />
+    <None Include="..\..\..\src\Thread\Intrinsic_linux.inl" />
+    <None Include="..\..\..\src\Thread\Intrinsic_win.inl" />
+    <None Include="..\..\..\src\Thread\Synchronize.inl" />
+    <None Include="..\..\..\src\Thread\SystemSynchronize_linux.inl" />
+    <None Include="..\..\..\src\Thread\SystemSynchronize_win.inl" />
     <None Include="..\..\..\src\thread\Thread.inl" />
     <None Include="..\..\..\src\thread\TimeUtil.inl" />
   </ItemGroup>

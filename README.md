@@ -1,10 +1,17 @@
 SharedPointer
 =============
 
-!!!UNDERCONSTRUCTION!!!
 
-I was wondering about performance of sharder pointer implementation in STL. Shared Pointer is such a great idea so that it can help many other programmers.
-However, it also has significant down side with performance. To make it works in multithread environment, STL shared pointer uses mutex lock/unlock for reference counting, and memory allocations for shared reference menagement.
+Lock-free shared pointer without OS level critical section such as mutex and critical section.
 
-Shard pointer without OS level critical section such as mutex and critical section.
+C++11 support will be introduced soon.
+Now this implementation only works on Windows x64 with Visual Studio 2013.
+
+I wanted to get rid of performance lose of STD shared_ptr implemention, and this is the result of it.
+I use lock-free instructions to avoid system kernel switching. I have to use several counter and state variable so it will consume more memory than other implementation.
+However, by sacrificing more memory, it will give you faster shared pointer implementation.
+
+NOTE: SharedReferenceManager::UpdateReferenceManager() should be called frequently. It's the one who releases memory. One more thing you need to care is it's not thread safe.
+You should make it sure that only one thread calls it at the same time.
+
 

@@ -13,7 +13,7 @@
 
 
 #include "Common/BrAssert.h"
-#include "Thread/Synchronize.h"
+#include "Thread/SystemSynchronize.h"
 
 
 namespace BR
@@ -49,7 +49,7 @@ namespace BR
 		PRIORITY m_threadPriority;
 
 		// Event handles for thread control
-		Event	m_KillEvent;
+		BR::Event	m_KillEvent;
 
 		// Calculate sleep interval
 		ULONG	m_ulPreTime;
@@ -73,7 +73,7 @@ namespace BR
 		inline PRIORITY GetPriority();
 
 		// Get end event handle
-		inline Event& GetKillEvent();
+		inline BR::Event& GetKillEvent();
 
 
 		// Calculate sleep interval
