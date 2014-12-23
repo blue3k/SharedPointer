@@ -39,14 +39,14 @@ namespace BR
 
 	private:
 		// reference counter for shared references
-		volatile mutable Interlocked::CounterType m_ReferenceCount;
+		mutable SyncCounter m_ReferenceCount;
 
 		// reference counter for weak references
-		volatile mutable Interlocked::CounterType m_WeakReferenceCount;
+		mutable SyncCounter m_WeakReferenceCount;
 
 		// reference counter for manager reference
-		volatile mutable Interlocked::CounterType m_ManageCount;
-		volatile mutable Interlocked::CounterType m_ManagerReferenceCount;
+		mutable SyncCounter m_ManageCount;
+		mutable SyncCounter m_ManagerReferenceCount;
 
 		// Object statue
 		volatile mutable SharedObjectState m_SharedObjectState;
@@ -104,12 +104,12 @@ namespace BR
 		void AddWeakReference() const;
 		void ReleaseWeakReference() const;
 
-		void ReleaseReference_ByManager(volatile Interlocked::CounterType& referenceCounter
+		void ReleaseReference_ByManager(SyncCounter& referenceCounter
 #ifdef REFERENCE_DEBUG_TRACKING
 			, const char* fileName, int lineNumber
 #endif
 			) const;
-		void ReleaseReference_ByItself(volatile Interlocked::CounterType& referenceCounter) const;
+		void ReleaseReference_ByItself(SyncCounter& referenceCounter) const;
 
 		void GetSharedPointer(SharedPointer& shardPointer) const;
 

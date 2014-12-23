@@ -24,26 +24,26 @@ namespace BR
 
 	void SharedObject::AddReference() const
 	{
-		Interlocked::Increment(m_ReferenceCount);
+		++m_ReferenceCount;
 	}
 
 	void SharedObject::ReleaseReference() const
 	{
 		if (m_ReferenceManagerObject != nullptr)
 		{
-			ReleaseReference_ByManager(const_cast<volatile Interlocked::CounterType&>(m_ReferenceCount)
+			ReleaseReference_ByManager(const_cast<SharedObject*>(this)->m_ReferenceCount
 #ifdef REFERENCE_DEBUG_TRACKING
 				, __FILE__, __LINE__
 #endif
 				);
 		}
 		else
-			ReleaseReference_ByItself(const_cast<volatile Interlocked::CounterType&>(m_ReferenceCount));
+			ReleaseReference_ByItself(const_cast<SharedObject*>(this)->m_ReferenceCount);
 	}
 
 	void SharedObject::AddWeakReference() const
 	{
-		Interlocked::Increment(m_WeakReferenceCount);
+		++m_WeakReferenceCount;
 	}
 
 	void SharedObject::ReleaseWeakReference() const
@@ -53,17 +53,17 @@ namespace BR
 
 		if (m_ReferenceManagerObject != nullptr)
 		{
-			ReleaseReference_ByManager(const_cast<volatile Interlocked::CounterType&>(m_WeakReferenceCount)
+			ReleaseReference_ByManager(const_cast<SharedObject*>(this)->m_WeakReferenceCount
 #ifdef REFERENCE_DEBUG_TRACKING
 				, __FILE__, __LINE__
 #endif
 				);
 		}
 		else
-			ReleaseReference_ByItself(const_cast<volatile Interlocked::CounterType&>(m_WeakReferenceCount));
+			ReleaseReference_ByItself(const_cast<SharedObject*>(this)->m_WeakReferenceCount);
 	}
 
-	void SharedObject::ReleaseReference_ByManager(volatile Interlocked::CounterType& referenceCounter
+	void SharedObject::ReleaseReference_ByManager(SyncCounter& referenceCounter
 #ifdef REFERENCE_DEBUG_TRACKING
 		, const char* fileName, int lineNumber
 #endif
@@ -72,10 +72,10 @@ namespace BR
 		AssertRel(m_ReferenceManagerObject != nullptr);
 		Assert(referenceCounter > 0);
 
-		ScopeCounter localCount((Interlocked::CounterType&)m_ManageCount);
+		ScopeCounter localCount(const_cast<SharedObject*>(this)->m_ManageCount);
 
 		auto localRef = m_ReferenceManagerObject;
-		auto decValue = Interlocked::Decrement(referenceCounter);
+		auto decValue = --referenceCounter;
 		if (decValue <= 0)
 		{
 			//Sleep(1);
@@ -87,13 +87,13 @@ namespace BR
 		}
 	}
 
-	void SharedObject::ReleaseReference_ByItself(volatile Interlocked::CounterType& referenceCounter) const
+	void SharedObject::ReleaseReference_ByItself(SyncCounter& referenceCounter) const
 	{
 		assert(referenceCounter > 0);
 
-		ScopeCounter localCount((Interlocked::CounterType&)m_ManageCount);
+		ScopeCounter localCount(m_ManageCount);
 
-		auto decValue = Interlocked::Decrement(referenceCounter);
+		auto decValue = --referenceCounter;
 		if (decValue <= 0)
 		{
 			int iTry = 0;

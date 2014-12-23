@@ -58,7 +58,7 @@ namespace BR
 		pObj->LatestReleaseState = state;
 #endif
 
-		Interlocked::Increment(pObj->m_ManagerReferenceCount);
+		--pObj->m_ManagerReferenceCount;
 		m_FreeQueue.push(pObj);
 	}
 
@@ -85,7 +85,7 @@ namespace BR
 				continue;
 			}
 
-			auto managerRefCount = Interlocked::Decrement(pObj->m_ManagerReferenceCount);
+			auto managerRefCount = --pObj->m_ManagerReferenceCount;
 			// it's queued more than once. leave this object for later operation
 			if (managerRefCount > 0)
 			{

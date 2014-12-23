@@ -15,17 +15,17 @@
 //	Sync counter class
 //
 
-// increment
-CounterType SyncCounter::Increment() volatile
-{
-	return Interlocked::Increment(m_Counter);
-}
-
-// decrement
-CounterType SyncCounter::Decrement() volatile
-{
-	return Interlocked::Decrement(m_Counter);
-}
+//// increment
+//CounterType SyncCounter::Increment() volatile
+//{
+//	return Interlocked::Increment(m_Counter);
+//}
+//
+//// decrement
+//CounterType SyncCounter::Decrement() volatile
+//{
+//	return Interlocked::Decrement(m_Counter);
+//}
 
 
 
@@ -86,29 +86,29 @@ void Ticketing::Reset()
 // Ticketing
 Ticketing::Ticket Ticketing::AcquireTicket()
 {
-	return m_Working.Increment();
+	return ++m_Working;
 }
 
 Ticketing::Ticket Ticketing::ReleaseTicket()
 {
-	return m_Worked.Increment();
+	return --m_Worked;
 }
 
 Ticketing::Ticket Ticketing::GetMyWaitingOrder(Ticket myTicket) const
 {
-	SignedCounterType Diff = (SignedCounterType)(myTicket - m_Worked.m_Counter);
+	SignedCounterType Diff = (SignedCounterType)(myTicket - m_Worked);
 	if( Diff < 0 ) Diff = 0;
 	return (Ticket)Diff;
 }
 
 Ticketing::Ticket Ticketing::GetNowWorkingCount() const
 {
-	return m_Working.m_Counter;
+	return m_Working;
 }
 
 Ticketing::Ticket Ticketing::GetWorkingCompleteCount() const
 {
-	return m_Worked.m_Counter;
+	return m_Worked;
 }
 
 
@@ -181,14 +181,14 @@ void TicketLock::NonExLock()
 	AssertRel( m_OpMode != LOCK_EXCLUSIVE );
 
 	m_OpMode = LOCK_NONEXCLUSIVE;
-	SignedCounterType count = (SignedCounterType)m_NonExclusiveCount.Increment();
+	SignedCounterType count = (SignedCounterType)(++m_NonExclusiveCount);
 	AssertRel(count > 0 );
 	m_Ticketing.ReleaseTicket();
 }
 
 void TicketLock::NonExUnlock()
 {
-	SignedCounterType count = (SignedCounterType)m_NonExclusiveCount.Decrement();
+	SignedCounterType count = (SignedCounterType)(--m_NonExclusiveCount);
 	AssertRel(count >= 0 );
 }
 
