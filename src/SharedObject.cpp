@@ -25,7 +25,6 @@ namespace BR
 	void SharedObject::AddReference() const
 	{
 		m_ReferenceCount.fetch_add(1, std::memory_order_relaxed);
-		//Interlocked::Increment(m_ReferenceCount);
 	}
 
 	void SharedObject::ReleaseReference() const
@@ -71,9 +70,7 @@ namespace BR
 		) const
 	{
 		AssertRel(m_ReferenceManagerObject != nullptr);
-		//Assert(referenceCounter > 0);
 
-		//ScopeCounter localCount((Interlocked::CounterType&)m_ManageCount);
 		m_ManageCount.fetch_add(1, std::memory_order_acquire);
 
 		auto localRef = m_ReferenceManagerObject;
@@ -96,7 +93,6 @@ namespace BR
 		assert(referenceCounter > 0);
 
 		m_ManageCount.fetch_add(1, std::memory_order_acquire);
-		//ScopeCounter localCount((Interlocked::CounterType&)m_ManageCount);
 
 		auto decValue = referenceCounter.fetch_sub(1, std::memory_order_acquire) - 1;
 		if (decValue <= 0)
@@ -112,11 +108,8 @@ namespace BR
 				switch (initialValue)
 				{
 				case SharedObjectState::Instanced:
-					//initialValue = (long)SharedObjectState::Instanced;
 					break;
 				case SharedObjectState::Disposed:
-					//initialValue = (long)SharedObjectState::Disposed; // ?
-					//AssertRel(!"Invalid shared object state");
 					break;
 				case SharedObjectState::LockedForSharedReferencing:
 					initialValue = m_SharedObjectState.load(std::memory_order_acquire);
@@ -133,7 +126,6 @@ namespace BR
 					break;
 
 			} while (true);
-			//} while (!Interlocked::CompareExchange((long&)m_SharedObjectState, (long)SharedObjectState::LockedForSharedReferencing, initialValue));
 
 			if (m_ReferenceCount <= 0)
 			{
@@ -183,20 +175,15 @@ namespace BR
 			if (GetReferenceCount() == 0)
 				return;
 
-			//if (Interlocked::CompareExchange((long&)m_SharedObjectState, (long)SharedObjectState::LockedForSharedReferencing, (long)SharedObjectState::Instanced))
-			//	break;
-
 			if (m_SharedObjectState.compare_exchange_weak(initialValue, SharedObjectState::LockedForSharedReferencing, std::memory_order_release, std::memory_order_relaxed))
 				break;
 
-		} while (true);// (!m_SharedObjectState.compare_exchange_weak(initialValue, SharedObjectState::LockedForSharedReferencing, std::memory_order_release, std::memory_order_relaxed));
+		} while (true);
 
-		//AssertRel(m_SharedObjectState != );
 		shardPointer.SetPointer(const_cast<SharedObject*>(this));
 
 		// back to normal sate
 		iTry = 0;
-		//while (!Interlocked::CompareExchange((long&)m_SharedObjectState, (long)SharedObjectState::Instanced, (long)SharedObjectState::LockedForSharedReferencing))
 		do
 		{
 			iTry++;
@@ -204,8 +191,6 @@ namespace BR
 				Sleep(2);
 
 			initialValue = SharedObjectState::LockedForSharedReferencing;
-			//Assert(m_SharedObjectState == SharedObjectState::LockedForSharedReferencing);
-			//Sleep(0);//
 		} while (!m_SharedObjectState.compare_exchange_weak(initialValue, SharedObjectState::Instanced, std::memory_order_relaxed, std::memory_order_relaxed));
 	}
 

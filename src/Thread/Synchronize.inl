@@ -30,6 +30,8 @@ void SpinLock::Lock()
 		{
 			Sleep(0);
 		}
+
+		expected = STATE_FREE;
 	}
 }
 
@@ -44,7 +46,7 @@ bool SpinLock::TryLock( int iTryCount )
 {
 	int iLockTry = 0;
 	long expected = STATE_FREE;
-	//while ( !Interlocked::CompareExchange(m_LockValue, STATE_LOCKED, STATE_FREE) ) 
+
 	while (!m_LockValue.compare_exchange_weak(expected, STATE_LOCKED, std::memory_order_acquire, std::memory_order_relaxed))
 	{ 
 		iLockTry++;
@@ -56,6 +58,8 @@ bool SpinLock::TryLock( int iTryCount )
 		{
 			Sleep(0);
 		}
+
+		expected = STATE_FREE;
 	}
 
 	return true;
