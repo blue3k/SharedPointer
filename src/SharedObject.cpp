@@ -24,21 +24,23 @@ namespace BR
 
 	void SharedObject::AddReference() const
 	{
-		m_ReferenceCount.fetch_add(1, std::memory_order_relaxed);
+		auto org = m_ReferenceCount.fetch_add(1, std::memory_order_relaxed);
+		if (org == 0)
+		{
+			// First shared reference should have one designated weak reference
+			Assert(GetWeakReferenceCount() == 1);
+		}
 	}
 
 	void SharedObject::ReleaseReference() const
 	{
-		if (m_ReferenceManagerObject != nullptr)
+		auto decValue = m_ReferenceCount.fetch_sub(1, std::memory_order_acquire) - 1;
+		if (decValue <= 0)
 		{
-			ReleaseReference_ByManager(m_ReferenceCount
-#ifdef REFERENCE_DEBUG_TRACKING
-				, __FILE__, __LINE__
-#endif
-				);
+			const_cast<SharedObject*>(this)->Dispose();
+
+			ReleaseWeakReference();
 		}
-		else
-			ReleaseReference_ByItself(m_ReferenceCount);
 	}
 
 	void SharedObject::AddWeakReference() const
@@ -48,150 +50,45 @@ namespace BR
 
 	void SharedObject::ReleaseWeakReference() const
 	{
-		auto state = m_SharedObjectState.load(std::memory_order_relaxed);
-		AssertRel(state != SharedObject::SharedObjectState::Deleted);
-
 		if (m_ReferenceManagerObject != nullptr)
 		{
-			ReleaseReference_ByManager(m_WeakReferenceCount
+			auto localRef = m_ReferenceManagerObject;
+			Assert(localRef != nullptr);
+			auto decValue = m_WeakReferenceCount.fetch_sub(1, std::memory_order_release);
+			if (decValue <= 1)
+			{
+				localRef->FreeSharedReference(const_cast<SharedObject*>(this)
 #ifdef REFERENCE_DEBUG_TRACKING
-				, __FILE__, __LINE__
+					, fileName, lineNumber
 #endif
-				);
+					);
+			}
 		}
 		else
-			ReleaseReference_ByItself(m_WeakReferenceCount);
-	}
-
-	void SharedObject::ReleaseReference_ByManager(SyncCounter& referenceCounter
-#ifdef REFERENCE_DEBUG_TRACKING
-		, const char* fileName, int lineNumber
-#endif
-		) const
-	{
-		AssertRel(m_ReferenceManagerObject != nullptr);
-
-		m_ManageCount.fetch_add(1, std::memory_order_acquire);
-
-		auto localRef = m_ReferenceManagerObject;
-		auto decValue = referenceCounter.fetch_sub(1, std::memory_order_acquire) - 1;
-		if (decValue <= 0)
 		{
-			//Sleep(1);
-			localRef->FreeSharedReference(const_cast<SharedObject*>(this)
-#ifdef REFERENCE_DEBUG_TRACKING
-				, fileName, lineNumber
-#endif
-				);
-		}
-
-		m_ManageCount.fetch_sub(1, std::memory_order_release);
-	}
-
-	void SharedObject::ReleaseReference_ByItself(SyncCounter& referenceCounter) const
-	{
-		assert(referenceCounter > 0);
-
-		m_ManageCount.fetch_add(1, std::memory_order_acquire);
-
-		auto decValue = referenceCounter.fetch_sub(1, std::memory_order_acquire) - 1;
-		if (decValue <= 0)
-		{
-			int iTry = 0;
-			SharedObjectState initialValue = m_SharedObjectState.load(std::memory_order_acquire);
-			do
+			auto decValue = m_WeakReferenceCount.fetch_sub(1, std::memory_order_release);
+			if (decValue <= 1)
 			{
-				iTry++;
-				if ((iTry % 5) == 0)
-					Sleep(5);
-
-				switch (initialValue)
-				{
-				case SharedObjectState::Instanced:
-					break;
-				case SharedObjectState::Disposed:
-					break;
-				case SharedObjectState::LockedForSharedReferencing:
-					initialValue = m_SharedObjectState.load(std::memory_order_acquire);
-					continue;
-				case SharedObjectState::Disposing:
-				case SharedObjectState::Deleted:
-					//case SharedObjectState::Disposed:
-				default:
-					AssertRel(!"Invalid shared object state");
-					return;
-				}
-
-				if (m_SharedObjectState.compare_exchange_weak(initialValue, SharedObjectState::LockedForSharedReferencing, std::memory_order_release, std::memory_order_relaxed))
-					break;
-
-			} while (true);
-
-			if (m_ReferenceCount <= 0)
-			{
-				// We don't need lock process, It's already locked
-				const_cast<SharedObject*>(this)->Dispose();
-
-				// Delete will be done at outside
-				// Variable checking order is significant
-				if (m_WeakReferenceCount <= 0
-					&& m_ManageCount == 0)
-					delete this;
-				else
-					m_SharedObjectState.store(initialValue, std::memory_order_release);
+				delete this;
 			}
-			else
-				m_SharedObjectState.store(initialValue, std::memory_order_release);
 		}
-
-		m_ManageCount.fetch_sub(1, std::memory_order_release);
 	}
 
 
 	void SharedObject::GetSharedPointer(SharedPointer& shardPointer) const
 	{
-		shardPointer = nullptr;
-
-		// get the state lock
-		int iTry = 0;
-		auto initialValue = m_SharedObjectState.load(std::memory_order_relaxed);
-		do{
-			iTry++;
-			if ((iTry % 2) == 0)
-				Sleep(2);
-
-			switch (initialValue)
-			{
-			case SharedObjectState::Instanced:
-				// Can get the lock
-				break;
-			case SharedObjectState::LockedForSharedReferencing:
-				initialValue = m_SharedObjectState.load(std::memory_order_relaxed);
-				continue;
-			default:
-				return;
-			}
-
-			if (GetReferenceCount() == 0)
-				return;
-
-			if (m_SharedObjectState.compare_exchange_weak(initialValue, SharedObjectState::LockedForSharedReferencing, std::memory_order_release, std::memory_order_relaxed))
-				break;
-
-		} while (true);
-
-		shardPointer.SetPointer(const_cast<SharedObject*>(this));
-
-		// back to normal sate
-		iTry = 0;
+		ReferenceCounterType curReference;
 		do
 		{
-			iTry++;
-			if ((iTry % 2) == 0)
-				Sleep(2);
+			curReference = m_ReferenceCount.load(std::memory_order_consume);
+			if (curReference <= 0)
+			{
+				shardPointer = nullptr;
+				return;
+			}
+		} while (!m_ReferenceCount.compare_exchange_weak(curReference, curReference + 1, std::memory_order_relaxed, std::memory_order_relaxed));
 
-			initialValue = SharedObjectState::LockedForSharedReferencing;
-		} while (!m_SharedObjectState.compare_exchange_weak(initialValue, SharedObjectState::Instanced, std::memory_order_relaxed, std::memory_order_relaxed));
+		shardPointer.SetPointer(const_cast<SharedObject*>(this));
 	}
 
 	///////////////////////////////////////////////////////////////////////////
@@ -202,13 +99,6 @@ namespace BR
 
 	SharedPointer SharedPointer::NullValue;
 	WeakPointer WeakPointer::NullValue;
-
-
-	void SharedPointer::GetWeakPointer(WeakPointer& pointer)
-	{
-		pointer = m_pObject;
-	}
-
 
 }
 

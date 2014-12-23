@@ -22,7 +22,7 @@
 #define Assert(expr) _ASSERT(expr)
 
 // Assert even release mode
-#define AssertRel(expr) _ASSERT(expr)
+#define AssertRel(expr) assert(expr)
 
 
 #else // #ifdef _DEBUG

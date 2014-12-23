@@ -5,7 +5,7 @@ VisualStudioVersion = 12.0.21005.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libSharedPointer", "libSharedPointer\libSharedPointer.vcxproj", "{9D9A28F0-7454-4DBF-974E-BBBEBA2402BA}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SharedPointerTest", "ShardPointerTest\ShardPointerTest.vcxproj", "{CA4449C9-06D1-45B0-9799-D4D6A664CEC7}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SharedPointerTest", "SharedPointerTest\SharedPointerTest.vcxproj", "{CA4449C9-06D1-45B0-9799-D4D6A664CEC7}"
 	ProjectSection(ProjectDependencies) = postProject
 		{9D9A28F0-7454-4DBF-974E-BBBEBA2402BA} = {9D9A28F0-7454-4DBF-974E-BBBEBA2402BA}
 	EndProjectSection

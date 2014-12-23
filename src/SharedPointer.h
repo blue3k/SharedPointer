@@ -8,9 +8,10 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#pragma once
 
 #include "Thread/Synchronize.h"
-#include "SharedReferenceManager.h"
+#include "SharedObject.h"
 
 namespace BR
 {
@@ -39,10 +40,7 @@ namespace BR
 		SharedPointer(const SharedPointer& src)
 			:m_pObject(src.m_pObject)
 		{
-			if (m_pObject->GetIsDisposed())
-				m_pObject = nullptr;
-			else
-				m_pObject->AddReference();
+			m_pObject->AddReference();
 		}
 
 		SharedPointer(SharedObject* pRef)
@@ -50,10 +48,7 @@ namespace BR
 		{
 			if (m_pObject != nullptr)
 			{
-				if (m_pObject->GetIsDisposed())
-					m_pObject = nullptr;
-				else
-					m_pObject->AddReference();
+				m_pObject->AddReference();
 			}
 		}
 
@@ -67,7 +62,7 @@ namespace BR
 			if (m_pObject == nullptr)
 				return;
 
-			assert(m_pObject->m_ReferenceCount > 0);
+			//assert(m_pObject->m_ReferenceCount > 0);
 
 			m_pObject->ReleaseReference();
 
@@ -84,8 +79,6 @@ namespace BR
 			return m_pObject;
 		}
 
-		void GetWeakPointer(WeakPointer& pointer);
-
 		SharedPointer& operator = (const SharedPointer& src)
 		{
 			ReleaseReference();
@@ -94,7 +87,7 @@ namespace BR
 
 			if (m_pObject != nullptr)
 			{
-				AssertRel(m_pObject->GetWeakReferenceCount() > 0 || m_pObject->GetReferenceCount() > 0);
+				Assert(m_pObject->GetWeakReferenceCount() > 0 || m_pObject->GetReferenceCount() > 0);
 				m_pObject->AddReference();
 			}
 
@@ -129,10 +122,6 @@ namespace BR
 			ReleaseReference();
 
 			m_pObject = pObject;
-			if (m_pObject != nullptr)
-			{
-				m_pObject->AddReference();
-			}
 		}
 
 		friend class SharedObject;
@@ -256,6 +245,13 @@ namespace BR
 
 		mutable SharedObject *m_pObject;
 
+		WeakPointer(SharedObject* pRef)
+			:m_pObject(pRef)
+		{
+			if (m_pObject != nullptr)
+				m_pObject->AddWeakReference();
+		}
+
 	public:
 
 		WeakPointer()
@@ -263,22 +259,10 @@ namespace BR
 		{
 		}
 
-		WeakPointer(SharedObject* pRef)
-			:m_pObject(pRef)
-		{
-			if (m_pObject->GetIsDisposed())
-				m_pObject = nullptr;
-			else
-				m_pObject->AddWeakReference();
-		}
-
 		WeakPointer(const WeakPointer& src)
 			:m_pObject(src.m_pObject)
 		{
-			if (m_pObject->GetIsDisposed())
-				m_pObject = nullptr;
-			else
-				m_pObject->AddWeakReference();
+			m_pObject->AddWeakReference();
 		}
 
 		~WeakPointer()
@@ -299,12 +283,10 @@ namespace BR
 		template<class SharedPointerType>
 		void GetSharedPointer(SharedPointerType& pointer) const
 		{
-			pointer = SharedPointerType();
-
-			if (m_pObject == nullptr || m_pObject->GetIsDisposed() || m_pObject->GetReferenceCount() <= 0)
-				return;
-
-			m_pObject->GetSharedPointer(pointer);
+			if (m_pObject != nullptr)
+				m_pObject->GetSharedPointer(pointer);
+			else
+				pointer = SharedPointerType();
 		}
 
 		explicit operator SharedPointer()
@@ -351,6 +333,25 @@ namespace BR
 			return m_pObject != pRef;
 		}
 
+		WeakPointer& operator = (const SharedPointer& src)
+		{
+			ReleaseReference();
+
+			auto *pObj = const_cast<SharedObject*>((const SharedObject*)src);
+			if (pObj == nullptr)
+				return *this;
+
+			m_pObject = pObj;
+
+			if (m_pObject != nullptr)
+			{
+				//Assert(m_pObject->GetWeakReferenceCount() > 0 || m_pObject->GetReferenceCount() > 0);
+				m_pObject->AddWeakReference();
+			}
+
+			return *this;
+		}
+
 		WeakPointer& operator = (const WeakPointer& src)
 		{
 			ReleaseReference();
@@ -362,7 +363,7 @@ namespace BR
 
 			if (m_pObject != nullptr)
 			{
-				AssertRel(m_pObject->GetWeakReferenceCount() > 0 || m_pObject->GetReferenceCount() > 0);
+				//AssertRel(m_pObject->GetWeakReferenceCount() > 0 || m_pObject->GetReferenceCount() > 0);
 				m_pObject->AddWeakReference();
 			}
 
@@ -432,6 +433,25 @@ namespace BR
 		bool operator != (SharedObject* pRef) const
 		{
 			return __super::operator != (pRef);
+		}
+
+		WeakPointerT<ClassType>& operator = (const SharedPointerT<ClassType>& src)
+		{
+			__super::operator = (src);
+
+			return *this;
+		}
+
+		WeakPointerT<ClassType>& operator = (const SharedPointer& src)
+		{
+			__super::operator = (src);
+
+			if (m_pObject != nullptr)
+			{
+				assert(typeid(m_pObject) == typeid(ClassType));
+			}
+
+			return *this;
 		}
 
 		WeakPointerT<ClassType>& operator = (const WeakPointer& src)
