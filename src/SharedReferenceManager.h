@@ -11,10 +11,6 @@
 #pragma once
 
 #include "Thread/Synchronize.h"
-//#include "Common/PageQueue.h"
-//#include "Common/MemoryPool.h"
-#include <concurrent_queue.h>
-#include <concurrent_unordered_map.h>
 
 //#define REFERENCE_DEBUG_TRACKING
 

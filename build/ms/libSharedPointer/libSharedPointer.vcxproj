@@ -96,8 +96,6 @@
     <ClCompile Include="..\..\..\src\thread\TimeUtil.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\Thread\Intrinsic_linux.inl" />
-    <None Include="..\..\..\src\Thread\Intrinsic_win.inl" />
     <None Include="..\..\..\src\Thread\Synchronize.inl" />
     <None Include="..\..\..\src\Thread\SystemSynchronize_linux.inl" />
     <None Include="..\..\..\src\Thread\SystemSynchronize_win.inl" />

@@ -217,15 +217,15 @@ namespace BR
 		inline bool	IsLocked() const;
 	};
 
-	
-	class FakeLock
+	// Fake ticket lock
+	class FakeTicketLock
 	{
 	public:
 	private:
 
 	public:
-		FakeLock(){}
-		~FakeLock(){}
+		FakeTicketLock(){}
+		~FakeTicketLock(){}
 
 		// Exclusive lock/unlock
 		inline void ExLock() {}
@@ -269,7 +269,7 @@ namespace BR
 
 
 	extern template class TicketScopeLockT<TicketLock>;
-	extern template class TicketScopeLockT<FakeLock>;
+	extern template class TicketScopeLockT<FakeTicketLock>;
 
 
 

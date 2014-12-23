@@ -74,6 +74,8 @@
 #include <atomic>
 
 #include <functional>
+#include <concurrent_queue.h>
+#include <concurrent_unordered_map.h>
 
 // See MSDN common datatypes section for base type definitions
 // http://msdn.microsoft.com/en-us/library/aa505945.aspx

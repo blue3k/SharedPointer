@@ -13,7 +13,8 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{CA4449C9-06D1-45B0-9799-D4D6A664CEC7}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>ShardPointerTest</RootNamespace>
+    <RootNamespace>SharedPointerTest</RootNamespace>
+    <ProjectName>SharedPointerTest</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -85,7 +86,13 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\test\ShardPointerTest.cpp" />
+    <ClCompile Include="..\..\..\test\SharedPointerPerformanceCompare.cpp" />
+    <ClCompile Include="..\..\..\test\SharedPointerTest.cpp" />
+    <ClCompile Include="..\..\..\test\SharedPointerTest1.cpp" />
+    <ClCompile Include="..\..\..\test\SharedPointerTest2.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\test\SharedPointerTest.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
