@@ -54,6 +54,9 @@
     <ClInclude Include="..\..\..\src\Thread\SystemSynchronize.h">
       <Filter>Thread</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\SharedObject.h">
+      <Filter>SharedPointer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\thread\Thread.cpp">
