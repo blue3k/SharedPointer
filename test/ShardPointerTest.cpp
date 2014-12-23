@@ -15,6 +15,7 @@
 
 #include <chrono>
 
+const int TestScale = 10;
 
 
 #define MAX_TEST_ID      60
@@ -26,7 +27,7 @@ class SharedObjectType : public BR::SharedObject
 {
 public:
 	long Identity;
-	long WeakReleasedCount;
+	BR::SyncCounter WeakReleasedCount;
 
 	SharedObjectType(long identity)
 		:Identity(identity)
@@ -43,8 +44,8 @@ public:
 
 
 	struct TestData {
-		BR::Interlocked::CounterType UsedCount;
-		BR::Interlocked::CounterType WeakUsedCount;
+		BR::SyncCounter UsedCount;
+		BR::SyncCounter WeakUsedCount;
 	};
 	TestData *pItem;
 
@@ -57,7 +58,7 @@ public:
 
 
 
-const unsigned TaskWorkerInterval = 50;
+const unsigned TaskWorkerInterval = 10;
 
 // this thread group can create/delete pointer
 class ThreadGroupOne : public BR::Thread
@@ -103,7 +104,7 @@ public:
 				else
 				{
 					localShared = stm_PointerStorage[randID];
-					auto usedCount = BR::Interlocked::Increment(localShared->pItem->UsedCount);
+					auto usedCount = localShared->pItem->UsedCount.fetch_add(1,std::memory_order_relaxed)+1;
 					if (usedCount > MAX_ACCESS_COUNT)
 						stm_PointerStorage[randID] = BR::SharedPointerT<SharedObjectType>();
 				}
@@ -163,10 +164,10 @@ public:
 					localShared.GetSharedPointer(shared);
 					if (shared != nullptr)
 					{
-						auto usedCount = BR::Interlocked::Increment(shared->pItem->WeakUsedCount);
+						auto usedCount = shared->pItem->WeakUsedCount.fetch_add(1, std::memory_order_relaxed);
 						if (usedCount > MAX_ACCESS_COUNT)
 						{
-							BR::Interlocked::Increment(shared->WeakReleasedCount);
+							shared->WeakReleasedCount.fetch_add(1, std::memory_order_relaxed);
 							stm_PointerStorage[randID] = BR::WeakPointerT<SharedObjectType>();
 						}
 					}
@@ -230,7 +231,7 @@ void SharedPointerTest1()
 	std::chrono::time_point<std::chrono::system_clock> start, end;
 	start = std::chrono::system_clock::now();
 	end = std::chrono::system_clock::now();
-	while ((std::chrono::system_clock::now() - start) < std::chrono::seconds(60))
+	while ((std::chrono::system_clock::now() - start) < std::chrono::seconds(TestScale*60))
 	{
 		pReferenceManager->UpdateReferenceManager();
 		Sleep(100);
@@ -274,7 +275,7 @@ private:
 
 public:
 	struct TestData {
-		BR::Interlocked::CounterType Item;
+		BR::SyncCounter Item;
 	};
 	TestData *pItem;
 
@@ -310,8 +311,8 @@ public:
 class TaskWorkerThread : public BR::Thread
 {
 public:
-	static ULONGLONG WorkedItems;
-	static ULONGLONG SkippedWorkedItems;
+	static BR::SyncCounter WorkedItems;
+	static BR::SyncCounter SkippedWorkedItems;
 
 	TaskWorkerThread()
 		: m_TaskWorkerInterval(1)
@@ -354,7 +355,7 @@ public:
 				// If disposed skip item
 				if (workObj == nullptr)
 				{
-					BR::Interlocked::Increment(SkippedWorkedItems);
+					SkippedWorkedItems.fetch_add(1,std::memory_order_relaxed);
 					continue;
 				}
 
@@ -364,7 +365,7 @@ public:
 				Sleep(0);
 				workObj->pItem->Item = workObj->GetReferenceCount();
 
-				BR::Interlocked::Increment(WorkedItems);
+				WorkedItems.fetch_add(1, std::memory_order_relaxed);
 			}
 		}
 
@@ -380,8 +381,8 @@ private:
 	Concurrency::concurrent_queue<BR::WeakPointerT<WorkingEntity>> m_WorkItemQueue;
 };
 
-ULONGLONG TaskWorkerThread::WorkedItems = 0;
-ULONGLONG TaskWorkerThread::SkippedWorkedItems = 0;
+BR::SyncCounter TaskWorkerThread::WorkedItems = 0;
+BR::SyncCounter TaskWorkerThread::SkippedWorkedItems = 0;
 
 
 class EntityTaskManager
@@ -509,7 +510,7 @@ public:
 EntityTaskManager* entityManager = nullptr;
 void SharedPointerTest2()
 {
-	const INT64 TEST_LENGTH = 9999999;
+	const INT64 TEST_LENGTH = 999999 * TestScale;
 
 	entityManager = new EntityTaskManager;
 	entityManager->InitializeTaskManager();
@@ -520,7 +521,7 @@ void SharedPointerTest2()
 		entityManager->Update();
 	};
 
-	while ((TaskWorkerThread::WorkedItems + TaskWorkerThread::SkippedWorkedItems) < TEST_LENGTH)
+	while ((TaskWorkerThread::WorkedItems.load(std::memory_order_relaxed) + TaskWorkerThread::SkippedWorkedItems.load(std::memory_order_relaxed)) < TEST_LENGTH)
 	{
 		Sleep(1000);
 		entityManager->Update();

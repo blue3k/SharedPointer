@@ -71,6 +71,7 @@
 #include <intrin.h>
 #include <emmintrin.h>
 #include <assert.h>
+#include <atomic>
 
 #include <functional>
 

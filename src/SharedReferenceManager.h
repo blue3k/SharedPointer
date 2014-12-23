@@ -16,6 +16,7 @@
 #include <concurrent_queue.h>
 #include <concurrent_unordered_map.h>
 
+//#define REFERENCE_DEBUG_TRACKING
 
 namespace BR
 {
@@ -39,17 +40,17 @@ namespace BR
 
 	private:
 		// reference counter for shared references
-		volatile mutable Interlocked::CounterType m_ReferenceCount;
+		mutable SyncCounter m_ReferenceCount;
 
 		// reference counter for weak references
-		volatile mutable Interlocked::CounterType m_WeakReferenceCount;
+		mutable SyncCounter m_WeakReferenceCount;
 
 		// reference counter for manager reference
-		volatile mutable Interlocked::CounterType m_ManageCount;
-		volatile mutable Interlocked::CounterType m_ManagerReferenceCount;
+		mutable SyncCounter m_ManageCount;
+		mutable SyncCounter m_ManagerReferenceCount;
 
 		// Object statue
-		volatile mutable SharedObjectState m_SharedObjectState;
+		mutable std::atomic<SharedObjectState> m_SharedObjectState;
 
 		// reference manager object
 		SharedReferenceManager *m_ReferenceManagerObject;
@@ -57,8 +58,6 @@ namespace BR
 	public:
 
 #ifdef REFERENCE_DEBUG_TRACKING
-
-		long DeletedObjects = 0;
 
 		volatile const char* LatestReleaseFile;
 		volatile int LatestReleaseLine;
@@ -84,11 +83,11 @@ namespace BR
 			assert(GetReferenceCount() == 0 && GetWeakReferenceCount() == 0);
 		}
 
-		inline bool							GetIsDisposed() const					{ return m_SharedObjectState == SharedObjectState::Disposed || m_SharedObjectState == SharedObjectState::Disposing; }
+		inline bool							GetIsDisposed() const					{ auto state = m_SharedObjectState.load(std::memory_order_relaxed); return state == SharedObjectState::Disposed || state == SharedObjectState::Disposing; }
 
-		inline Interlocked::CounterType		GetReferenceCount() const				{ return m_ReferenceCount; }
-		inline Interlocked::CounterType		GetWeakReferenceCount() const			{ return m_WeakReferenceCount; }
-		inline Interlocked::CounterType		GetManagerReferenceCount() const		{ return m_ManagerReferenceCount; }
+		inline CounterType		GetReferenceCount() const							{ return m_ReferenceCount.load(std::memory_order_relaxed); }
+		inline CounterType		GetWeakReferenceCount() const						{ return m_WeakReferenceCount.load(std::memory_order_relaxed); }
+		inline CounterType		GetManagerReferenceCount() const					{ return m_ManagerReferenceCount.load(std::memory_order_relaxed); }
 
 		inline SharedReferenceManager*		GetReferenceManager()					{ return m_ReferenceManagerObject; }
 
@@ -104,16 +103,14 @@ namespace BR
 		void AddWeakReference() const;
 		void ReleaseWeakReference() const;
 
-		void ReleaseReference_ByManager(volatile Interlocked::CounterType& referenceCounter
+		void ReleaseReference_ByManager(SyncCounter& referenceCounter
 #ifdef REFERENCE_DEBUG_TRACKING
 			, const char* fileName, int lineNumber
 #endif
 			) const;
-		void ReleaseReference_ByItself(volatile Interlocked::CounterType& referenceCounter) const;
+		void ReleaseReference_ByItself(SyncCounter& referenceCounter) const;
 
 		void GetSharedPointer(SharedPointer& shardPointer) const;
-
-		//void Dispose_Inter();
 
 		friend class SharedReferenceManager;
 		friend class SharedPointer;
@@ -136,7 +133,12 @@ namespace BR
 		concurrency::concurrent_queue<SharedObject*> m_FreeQueue;
 
 		// Linked Object counter 
-		Interlocked::CounterType m_ObjectCount;
+		SyncCounter m_ObjectCount;
+
+#ifdef REFERENCE_DEBUG_TRACKING
+		long DeletedObjects = 0;
+#endif
+
 
 	public:
 		Concurrency::concurrent_unordered_map<UINT, SharedObject*> m_PendingFreeObjects;

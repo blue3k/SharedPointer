@@ -24,58 +24,60 @@ namespace BR
 
 	void SharedObject::AddReference() const
 	{
-		Interlocked::Increment(m_ReferenceCount);
+		m_ReferenceCount.fetch_add(1, std::memory_order_relaxed);
+		//Interlocked::Increment(m_ReferenceCount);
 	}
 
 	void SharedObject::ReleaseReference() const
 	{
 		if (m_ReferenceManagerObject != nullptr)
 		{
-			ReleaseReference_ByManager(const_cast<volatile Interlocked::CounterType&>(m_ReferenceCount)
+			ReleaseReference_ByManager(m_ReferenceCount
 #ifdef REFERENCE_DEBUG_TRACKING
 				, __FILE__, __LINE__
 #endif
 				);
 		}
 		else
-			ReleaseReference_ByItself(const_cast<volatile Interlocked::CounterType&>(m_ReferenceCount));
+			ReleaseReference_ByItself(m_ReferenceCount);
 	}
 
 	void SharedObject::AddWeakReference() const
 	{
-		Interlocked::Increment(m_WeakReferenceCount);
+		m_WeakReferenceCount.fetch_add(1, std::memory_order_relaxed);
 	}
 
 	void SharedObject::ReleaseWeakReference() const
 	{
-		auto state = m_SharedObjectState;
+		auto state = m_SharedObjectState.load(std::memory_order_relaxed);
 		AssertRel(state != SharedObject::SharedObjectState::Deleted);
 
 		if (m_ReferenceManagerObject != nullptr)
 		{
-			ReleaseReference_ByManager(const_cast<volatile Interlocked::CounterType&>(m_WeakReferenceCount)
+			ReleaseReference_ByManager(m_WeakReferenceCount
 #ifdef REFERENCE_DEBUG_TRACKING
 				, __FILE__, __LINE__
 #endif
 				);
 		}
 		else
-			ReleaseReference_ByItself(const_cast<volatile Interlocked::CounterType&>(m_WeakReferenceCount));
+			ReleaseReference_ByItself(m_WeakReferenceCount);
 	}
 
-	void SharedObject::ReleaseReference_ByManager(volatile Interlocked::CounterType& referenceCounter
+	void SharedObject::ReleaseReference_ByManager(SyncCounter& referenceCounter
 #ifdef REFERENCE_DEBUG_TRACKING
 		, const char* fileName, int lineNumber
 #endif
 		) const
 	{
 		AssertRel(m_ReferenceManagerObject != nullptr);
-		Assert(referenceCounter > 0);
+		//Assert(referenceCounter > 0);
 
-		ScopeCounter localCount((Interlocked::CounterType&)m_ManageCount);
+		//ScopeCounter localCount((Interlocked::CounterType&)m_ManageCount);
+		m_ManageCount.fetch_add(1, std::memory_order_acquire);
 
 		auto localRef = m_ReferenceManagerObject;
-		auto decValue = Interlocked::Decrement(referenceCounter);
+		auto decValue = referenceCounter.fetch_sub(1, std::memory_order_acquire) - 1;
 		if (decValue <= 0)
 		{
 			//Sleep(1);
@@ -85,35 +87,39 @@ namespace BR
 #endif
 				);
 		}
+
+		m_ManageCount.fetch_sub(1, std::memory_order_release);
 	}
 
-	void SharedObject::ReleaseReference_ByItself(volatile Interlocked::CounterType& referenceCounter) const
+	void SharedObject::ReleaseReference_ByItself(SyncCounter& referenceCounter) const
 	{
 		assert(referenceCounter > 0);
 
-		ScopeCounter localCount((Interlocked::CounterType&)m_ManageCount);
+		m_ManageCount.fetch_add(1, std::memory_order_acquire);
+		//ScopeCounter localCount((Interlocked::CounterType&)m_ManageCount);
 
-		auto decValue = Interlocked::Decrement(referenceCounter);
+		auto decValue = referenceCounter.fetch_sub(1, std::memory_order_acquire) - 1;
 		if (decValue <= 0)
 		{
 			int iTry = 0;
-			long initialValue = (long)SharedObjectState::Instanced;
+			SharedObjectState initialValue = m_SharedObjectState.load(std::memory_order_acquire);
 			do
 			{
 				iTry++;
 				if ((iTry % 5) == 0)
 					Sleep(5);
 
-				switch (m_SharedObjectState)
+				switch (initialValue)
 				{
 				case SharedObjectState::Instanced:
-					initialValue = (long)SharedObjectState::Instanced;
+					//initialValue = (long)SharedObjectState::Instanced;
 					break;
 				case SharedObjectState::Disposed:
-					initialValue = (long)SharedObjectState::Disposed; // ?
+					//initialValue = (long)SharedObjectState::Disposed; // ?
 					//AssertRel(!"Invalid shared object state");
 					break;
 				case SharedObjectState::LockedForSharedReferencing:
+					initialValue = m_SharedObjectState.load(std::memory_order_acquire);
 					continue;
 				case SharedObjectState::Disposing:
 				case SharedObjectState::Deleted:
@@ -123,7 +129,11 @@ namespace BR
 					return;
 				}
 
-			} while (!Interlocked::CompareExchange((long&)m_SharedObjectState, (long)SharedObjectState::LockedForSharedReferencing, initialValue));
+				if (m_SharedObjectState.compare_exchange_weak(initialValue, SharedObjectState::LockedForSharedReferencing, std::memory_order_release, std::memory_order_relaxed))
+					break;
+
+			} while (true);
+			//} while (!Interlocked::CompareExchange((long&)m_SharedObjectState, (long)SharedObjectState::LockedForSharedReferencing, initialValue));
 
 			if (m_ReferenceCount <= 0)
 			{
@@ -136,11 +146,13 @@ namespace BR
 					&& m_ManageCount == 0)
 					delete this;
 				else
-					m_SharedObjectState = (SharedObjectState)initialValue;
+					m_SharedObjectState.store(initialValue, std::memory_order_release);
 			}
 			else
-				m_SharedObjectState = (SharedObjectState)initialValue;
+				m_SharedObjectState.store(initialValue, std::memory_order_release);
 		}
+
+		m_ManageCount.fetch_sub(1, std::memory_order_release);
 	}
 
 
@@ -150,17 +162,19 @@ namespace BR
 
 		// get the state lock
 		int iTry = 0;
+		auto initialValue = m_SharedObjectState.load(std::memory_order_relaxed);
 		do{
 			iTry++;
 			if ((iTry % 2) == 0)
 				Sleep(2);
 
-			switch (m_SharedObjectState)
+			switch (initialValue)
 			{
 			case SharedObjectState::Instanced:
 				// Can get the lock
 				break;
 			case SharedObjectState::LockedForSharedReferencing:
+				initialValue = m_SharedObjectState.load(std::memory_order_relaxed);
 				continue;
 			default:
 				return;
@@ -169,25 +183,30 @@ namespace BR
 			if (GetReferenceCount() == 0)
 				return;
 
-			if (Interlocked::CompareExchange((long&)m_SharedObjectState, (long)SharedObjectState::LockedForSharedReferencing, (long)SharedObjectState::Instanced))
+			//if (Interlocked::CompareExchange((long&)m_SharedObjectState, (long)SharedObjectState::LockedForSharedReferencing, (long)SharedObjectState::Instanced))
+			//	break;
+
+			if (m_SharedObjectState.compare_exchange_weak(initialValue, SharedObjectState::LockedForSharedReferencing, std::memory_order_release, std::memory_order_relaxed))
 				break;
 
-		} while (true);
+		} while (true);// (!m_SharedObjectState.compare_exchange_weak(initialValue, SharedObjectState::LockedForSharedReferencing, std::memory_order_release, std::memory_order_relaxed));
 
 		//AssertRel(m_SharedObjectState != );
 		shardPointer.SetPointer(const_cast<SharedObject*>(this));
 
 		// back to normal sate
 		iTry = 0;
-		while (!Interlocked::CompareExchange((long&)m_SharedObjectState, (long)SharedObjectState::Instanced, (long)SharedObjectState::LockedForSharedReferencing))
+		//while (!Interlocked::CompareExchange((long&)m_SharedObjectState, (long)SharedObjectState::Instanced, (long)SharedObjectState::LockedForSharedReferencing))
+		do
 		{
 			iTry++;
 			if ((iTry % 2) == 0)
 				Sleep(2);
 
-			Assert(m_SharedObjectState == SharedObjectState::LockedForSharedReferencing);
-			Sleep(0);
-		}
+			initialValue = SharedObjectState::LockedForSharedReferencing;
+			//Assert(m_SharedObjectState == SharedObjectState::LockedForSharedReferencing);
+			//Sleep(0);//
+		} while (!m_SharedObjectState.compare_exchange_weak(initialValue, SharedObjectState::Instanced, std::memory_order_relaxed, std::memory_order_relaxed));
 	}
 
 	///////////////////////////////////////////////////////////////////////////

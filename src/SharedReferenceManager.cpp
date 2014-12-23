@@ -29,7 +29,7 @@ namespace BR
 		assert(pSharedObject->m_ReferenceManagerObject == nullptr || pSharedObject->m_ReferenceManagerObject == this);
 
 		if (pSharedObject->m_ReferenceManagerObject != this)
-			Interlocked::Increment(m_ObjectCount);
+			m_ObjectCount.fetch_add(1, std::memory_order_relaxed);
 
 		// This will just link manager to object
 		pSharedObject->m_ReferenceManagerObject = this;
@@ -51,14 +51,14 @@ namespace BR
 			return;
 
 #ifdef REFERENCE_DEBUG_TRACKING
-		auto state = pObj->m_SharedObjectState;
+		auto state = pObj->m_SharedObjectState.load(std::memory_order_relaxed);
 
 		pObj->LatestReleaseFile = fileName;
 		pObj->LatestReleaseLine = lineNumber;
 		pObj->LatestReleaseState = state;
 #endif
 
-		Interlocked::Increment(pObj->m_ManagerReferenceCount);
+		pObj->m_ManagerReferenceCount.fetch_add(1, std::memory_order_acquire);
 		m_FreeQueue.push(pObj);
 	}
 
@@ -72,7 +72,6 @@ namespace BR
 		{
 			SharedObject* pObj = nullptr;
 			if (!m_FreeQueue.try_pop(pObj))
-				//if (FAILED(m_FreeQueue.Dequeue(pObj)))
 				break;
 
 			// This can't be processed now
@@ -85,7 +84,7 @@ namespace BR
 				continue;
 			}
 
-			auto managerRefCount = Interlocked::Decrement(pObj->m_ManagerReferenceCount);
+			auto managerRefCount = pObj->m_ManagerReferenceCount.fetch_sub(1, std::memory_order_relaxed) - 1;
 			// it's queued more than once. leave this object for later operation
 			if (managerRefCount > 0)
 			{
@@ -97,7 +96,8 @@ namespace BR
 
 			// Lock
 			int itryCount = 0;
-			SharedObject::SharedObjectState prevState = SharedObject::SharedObjectState::Instanced;
+			SharedObject::SharedObjectState expected = SharedObject::SharedObjectState::None;
+			SharedObject::SharedObjectState prevState = SharedObject::SharedObjectState::None;
 			do
 			{
 				itryCount++;
@@ -107,7 +107,9 @@ namespace BR
 				else
 					Sleep(0);
 
-				switch (pObj->m_SharedObjectState)
+				expected = pObj->m_SharedObjectState.load(std::memory_order_relaxed);
+
+				switch (expected)
 				{
 				case SharedObject::SharedObjectState::Instanced:
 					prevState = SharedObject::SharedObjectState::Instanced;
@@ -127,7 +129,7 @@ namespace BR
 					continue;
 				}
 
-				if (Interlocked::CompareExchange((long&)pObj->m_SharedObjectState, (long)SharedObject::SharedObjectState::LockedForSharedReferencing, (long)prevState))
+				if (pObj->m_SharedObjectState.compare_exchange_weak(expected, SharedObject::SharedObjectState::LockedForSharedReferencing, std::memory_order_release, std::memory_order_relaxed))
 					break;
 
 			} while (true);
@@ -142,7 +144,9 @@ namespace BR
 				{
 					itryCount++;
 					Assert(itryCount < 10);
-				} while (!Interlocked::CompareExchange((long&)pObj->m_SharedObjectState, (long)SharedObject::SharedObjectState::Instanced, (long)SharedObject::SharedObjectState::LockedForSharedReferencing));
+
+					expected = SharedObject::SharedObjectState::LockedForSharedReferencing;
+				} while (!pObj->m_SharedObjectState.compare_exchange_weak(expected, SharedObject::SharedObjectState::Instanced, std::memory_order_relaxed, std::memory_order_relaxed));
 				continue;
 			}
 
@@ -152,7 +156,8 @@ namespace BR
 			{
 				itryCount++;
 				AssertRel(itryCount < 10);
-			} while (!Interlocked::CompareExchange((long&)pObj->m_SharedObjectState, (long)SharedObject::SharedObjectState::Disposing, (long)SharedObject::SharedObjectState::LockedForSharedReferencing));
+				expected = SharedObject::SharedObjectState::LockedForSharedReferencing;
+			} while (!pObj->m_SharedObjectState.compare_exchange_weak(expected, SharedObject::SharedObjectState::Disposing, std::memory_order_release, std::memory_order_relaxed));
 
 
 			if (prevState == SharedObject::SharedObjectState::Instanced)
@@ -162,8 +167,8 @@ namespace BR
 			}
 
 			// Counter checking order is important. see WeakPointer release
-			if (   pObj->GetWeakReferenceCount() > 0        // If somebody is still accessing this object pointer
-				|| pObj->m_ManageCount > 0                  // This will be enqueued or something will be happened
+			if (   pObj->m_WeakReferenceCount.load(std::memory_order_acquire) > 0        // If somebody is still accessing this object pointer
+				|| pObj->m_ManageCount.load(std::memory_order_acquire) > 0                  // This will be enqueued or something will be happened
 				|| pObj->GetManagerReferenceCount() > 0)    // final check to prevent ABA reference count problem
 			{
 				itryCount = 0;
@@ -171,9 +176,10 @@ namespace BR
 				{
 					itryCount++;
 					AssertRel(itryCount < 10);
-				} while (!Interlocked::CompareExchange((long&)pObj->m_SharedObjectState, (long)SharedObject::SharedObjectState::Disposed, (long)SharedObject::SharedObjectState::Disposing));
+					expected = SharedObject::SharedObjectState::Disposing;
+				} while (!pObj->m_SharedObjectState.compare_exchange_weak(expected, SharedObject::SharedObjectState::Disposed, std::memory_order_release, std::memory_order_relaxed));
 
-				AssertRel(pObj->m_SharedObjectState == SharedObject::SharedObjectState::Disposed);
+				AssertRel(pObj->m_SharedObjectState.load(std::memory_order_relaxed) == SharedObject::SharedObjectState::Disposed);
 
 #ifdef REFERENCE_DEBUG_TRACKING
 				pObj->LatestQueueProcessResult = "Still referenced";
@@ -188,7 +194,8 @@ namespace BR
 				{
 					itryCount++;
 					Assert(itryCount < 10);
-				} while (!Interlocked::CompareExchange((long&)pObj->m_SharedObjectState, (long)SharedObject::SharedObjectState::Deleted, (long)SharedObject::SharedObjectState::Disposing));
+					expected = SharedObject::SharedObjectState::Disposing;
+				} while (!pObj->m_SharedObjectState.compare_exchange_weak(expected, SharedObject::SharedObjectState::Deleted, std::memory_order_release, std::memory_order_relaxed));
 
 #ifdef REFERENCE_DEBUG_TRACKING
 				pObj->LatestQueueProcessResult = "Deleted";
@@ -210,6 +217,8 @@ namespace BR
 			m_PendingFreeObjects.unsafe_erase(pObj->TestID);
 			_ReadWriteBarrier();
 #endif
+			m_ObjectCount.fetch_sub(1, std::memory_order_relaxed);
+
 			delete pObj;
 		}
 

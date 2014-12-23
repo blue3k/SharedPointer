@@ -14,15 +14,6 @@
 
 #include "Common/Typedefs.h"
 #include "Common/BrAssert.h"
-//#include "Common/Memory.h"
-//#include "Common/Utility.h"
-
-
-#if defined(WIN32) || defined(WIN64)
-#include "Intrinsic_win.inl"
-#else
-#include "Intrinsic_linux.inl"
-#endif
 
 
 namespace BR
@@ -52,32 +43,7 @@ namespace BR
 	//	Sync counter class
 	//
 
-	class SyncCounter
-	{
-	public:
-		volatile CounterType	m_Counter;
-
-		SyncCounter() : m_Counter(0) {}
-		SyncCounter( CounterType src ) : m_Counter(src) {}
-		~SyncCounter(){}
-
-		operator CounterType() volatile const
-		{
-			return m_Counter;
-		}
-
-		CounterType operator = ( const SyncCounter& src ) volatile
-		{
-			m_Counter = src.m_Counter;
-			return m_Counter;
-		}
-
-		// increment
-		inline CounterType Increment() volatile;
-
-		// decrement
-		inline CounterType Decrement() volatile;
-	};
+	typedef std::atomic<CounterType> SyncCounter;
 
 
 
@@ -85,18 +51,18 @@ namespace BR
 	class ScopeCounter
 	{
 	public:
-		ScopeCounter(CounterType& counterInstance) : m_CounterInstance(counterInstance)
+		ScopeCounter(SyncCounter& counterInstance) : m_CounterInstance(counterInstance)
 		{
-			Interlocked::Increment(m_CounterInstance);
+			m_CounterInstance.fetch_add(1, std::memory_order_acquire);
 		}
 
 		~ScopeCounter()
 		{
-			Interlocked::Decrement(m_CounterInstance);
+			m_CounterInstance.fetch_sub(1, std::memory_order_release);
 		}
 
 	private:
-		CounterType &m_CounterInstance;
+		SyncCounter &m_CounterInstance;
 	};
 
 	
@@ -116,7 +82,7 @@ namespace BR
 	private:
 
 		// Lock state
-		volatile LONG m_LockValue; 
+		std::atomic<LONG> m_LockValue; 
    
 	public:
 		SpinLock() : m_LockValue(STATE_FREE) { } 
@@ -229,9 +195,9 @@ namespace BR
 
 	private:
 		// read lock count
-		volatile ULONG	m_OpMode;
-		Ticketing		m_Ticketing;
-		volatile SyncCounter m_NonExclusiveCount;
+		std::atomic<ULONG>	m_OpMode;
+		Ticketing			m_Ticketing;
+		SyncCounter			m_NonExclusiveCount;
 
 	public:
 		inline TicketLock();

@@ -10,24 +10,6 @@
 
 
 
-//////////////////////////////////////////////////////////////////////////////////
-//
-//	Sync counter class
-//
-
-// increment
-CounterType SyncCounter::Increment() volatile
-{
-	return Interlocked::Increment(m_Counter);
-}
-
-// decrement
-CounterType SyncCounter::Decrement() volatile
-{
-	return Interlocked::Decrement(m_Counter);
-}
-
-
 
 //////////////////////////////////////////////////////////////////////////////////
 //
@@ -39,7 +21,9 @@ CounterType SyncCounter::Decrement() volatile
 void SpinLock::Lock()
 {
 	int iLockTry = 0;
-	while(_InterlockedCompareExchange(&m_LockValue, STATE_LOCKED, STATE_FREE) != STATE_FREE) // lock value가 1이면 진입
+	long expected = STATE_FREE;
+	//while(_InterlockedCompareExchange(&m_LockValue, STATE_LOCKED, STATE_FREE) != STATE_FREE) 
+	while (!m_LockValue.compare_exchange_weak(expected, STATE_LOCKED, std::memory_order_acquire, std::memory_order_relaxed))
 	{ 
 		iLockTry++;
 		if( iLockTry%5 )
@@ -52,16 +36,16 @@ void SpinLock::Lock()
 // Unlock
 void SpinLock::UnLock()
 {
-	m_LockValue = STATE_FREE;
-	_WriteBarrier();
+	m_LockValue.store(STATE_FREE, std::memory_order_relaxed);
 }
 
 // Try lock bit a while
 bool SpinLock::TryLock( int iTryCount )
 {
 	int iLockTry = 0;
-	//while(_InterlockedCompareExchange(&m_LockValue, STATE_LOCKED, STATE_FREE) != STATE_FREE) // lock value가 1이면 진입
-	while ( !Interlocked::CompareExchange(m_LockValue, STATE_LOCKED, STATE_FREE) ) // lock value가 1이면 진입
+	long expected = STATE_FREE;
+	//while ( !Interlocked::CompareExchange(m_LockValue, STATE_LOCKED, STATE_FREE) ) 
+	while (!m_LockValue.compare_exchange_weak(expected, STATE_LOCKED, std::memory_order_acquire, std::memory_order_relaxed))
 	{ 
 		iLockTry++;
 
@@ -77,6 +61,10 @@ bool SpinLock::TryLock( int iTryCount )
 	return true;
 }
 
+
+
+
+
 // Reset ticket
 void Ticketing::Reset()
 {
@@ -86,29 +74,29 @@ void Ticketing::Reset()
 // Ticketing
 Ticketing::Ticket Ticketing::AcquireTicket()
 {
-	return m_Working.Increment();
+	return m_Working.fetch_add(1, std::memory_order_acquire) + 1;
 }
 
 Ticketing::Ticket Ticketing::ReleaseTicket()
 {
-	return m_Worked.Increment();
+	return m_Worked.fetch_add(1, std::memory_order_release) + 1;
 }
 
 Ticketing::Ticket Ticketing::GetMyWaitingOrder(Ticket myTicket) const
 {
-	SignedCounterType Diff = (SignedCounterType)(myTicket - m_Worked.m_Counter);
+	SignedCounterType Diff = (SignedCounterType)(myTicket - m_Worked.load(std::memory_order_relaxed));
 	if( Diff < 0 ) Diff = 0;
 	return (Ticket)Diff;
 }
 
 Ticketing::Ticket Ticketing::GetNowWorkingCount() const
 {
-	return m_Working.m_Counter;
+	return m_Working;
 }
 
 Ticketing::Ticket Ticketing::GetWorkingCompleteCount() const
 {
-	return m_Worked.m_Counter;
+	return m_Worked;
 }
 
 
@@ -150,13 +138,12 @@ void TicketLock::ExLock()
 		Sleep(0);
 	}
 
-	m_OpMode = LOCK_EXCLUSIVE;
+	m_OpMode.store(LOCK_EXCLUSIVE, std::memory_order_acquire);
 }
 
 void TicketLock::ExUnlock()
 {
-	//AssertRel( m_OpMode == LOCK_EXCLUSIVE );
-	m_OpMode = LOCK_FREE;
+	m_OpMode.store(LOCK_FREE,std::memory_order_release);
 	m_Ticketing.ReleaseTicket();
 }
 
@@ -173,22 +160,17 @@ void TicketLock::NonExLock()
 			Sleep(0);
 	}
 
-	//// wait if Write mode, will not occure
-	//while( m_OpMode == LOCK_EXCLUSIVE )
-	//{
-	//	Sleep(0);
-	//}
-	AssertRel( m_OpMode != LOCK_EXCLUSIVE );
+	Assert( m_OpMode.load(std::memory_order_relaxed) != LOCK_EXCLUSIVE );
 
-	m_OpMode = LOCK_NONEXCLUSIVE;
-	SignedCounterType count = (SignedCounterType)m_NonExclusiveCount.Increment();
+	m_OpMode.store(LOCK_NONEXCLUSIVE, std::memory_order_acquire);
+	SignedCounterType count = (SignedCounterType)(m_NonExclusiveCount.fetch_add(1,std::memory_order_relaxed) + 1);
 	AssertRel(count > 0 );
 	m_Ticketing.ReleaseTicket();
 }
 
 void TicketLock::NonExUnlock()
 {
-	SignedCounterType count = (SignedCounterType)m_NonExclusiveCount.Decrement();
+	SignedCounterType count = (SignedCounterType)(m_NonExclusiveCount.fetch_add(1, std::memory_order_relaxed) + 1);
 	AssertRel(count >= 0 );
 }
 
@@ -200,12 +182,12 @@ CounterType TicketLock::GetTicketCount() const
 
 CounterType TicketLock::GetNonExclusiveCount() const
 {
-	return m_NonExclusiveCount;
+	return m_NonExclusiveCount.load(std::memory_order_relaxed);
 }
 
 bool TicketLock::IsLocked() const
 {
-	return !( (m_Ticketing.GetTotalWaitingCount()) == 0 && m_NonExclusiveCount == 0 );
+	return !( (m_Ticketing.GetTotalWaitingCount()) == 0 && m_NonExclusiveCount.load(std::memory_order_relaxed) == 0 );
 }
 
 
