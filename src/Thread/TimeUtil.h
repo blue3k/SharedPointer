@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 // 
-// CopyRight (c) 2013 The Braves
+// CopyRight (c) 2013 Blue3k
 // 
 // Author : KyungKun Ko
 //
@@ -13,7 +13,7 @@
 #pragma once
 
 #include "Common/Typedefs.h"
-#include "Common/ClassUtil.h"
+
 
 namespace BR {
 namespace Util {

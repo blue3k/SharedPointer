@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 // 
-// CopyRight (c) 2013 MadK
+// CopyRight (c) 2013 Blue3k
 // 
 // Author : KyungKun Ko
 //
@@ -59,7 +59,7 @@ namespace BR
 }; // namespace BR
 
 
-#if defined(WIN32) || defined(WIN64)
+#if defined(WIN32) || defined(_WIN64)
 #include "SystemSynchronize_win.inl"
 #else
 #include "SystemSynchronize_linux.inl"

@@ -1,8 +1,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 // 
-// CopyRight (c) 2013 The Braves
+// CopyRight (c) 2013 Blue3k
 // 
-// Author : MadK
+// Author : Blue3k
 //
 // Description : Debug definitions
 //	

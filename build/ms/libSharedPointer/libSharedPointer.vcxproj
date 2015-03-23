@@ -80,7 +80,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\Common\BrAssert.h" />
-    <ClInclude Include="..\..\..\src\Common\ClassUtil.h" />
     <ClInclude Include="..\..\..\src\Common\Typedefs.h" />
     <ClInclude Include="..\..\..\src\SharedObject.h" />
     <ClInclude Include="..\..\..\src\SharedPointer.h" />

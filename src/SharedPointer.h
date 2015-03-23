@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 // 
-// CopyRight (c) 2014 MadK
+// CopyRight (c) 2014 Blue3k
 // 
 // Author : KyungKun Ko
 //
@@ -41,6 +41,12 @@ namespace BR
 			:m_pObject(src.m_pObject)
 		{
 			m_pObject->AddReference();
+		}
+
+		SharedPointer(SharedPointer&& src)
+			:m_pObject(src.m_pObject)
+		{
+			src.m_pObject = nullptr;
 		}
 
 		SharedPointer(SharedObject* pRef)
@@ -90,6 +96,17 @@ namespace BR
 				Assert(m_pObject->GetWeakReferenceCount() > 0 || m_pObject->GetReferenceCount() > 0);
 				m_pObject->AddReference();
 			}
+
+			return *this;
+		}
+
+		SharedPointer& operator = (SharedPointer&& src)
+		{
+			ReleaseReference();
+
+			auto pObj = src.m_pObject;
+			src.m_pObject = nullptr;
+			m_pObject = pObj;
 
 			return *this;
 		}
@@ -203,6 +220,12 @@ namespace BR
 		SharedPointerT<ClassType>& operator = (const SharedPointerT<ClassType>& src)
 		{
 			__super::operator = (src);
+			return *this;
+		}
+
+		SharedPointerT<ClassType>& operator = (SharedPointerT<ClassType>&& src)
+		{
+			__super::operator = (std::forward<SharedPointerT<ClassType>>(src));
 			return *this;
 		}
 
@@ -370,6 +393,19 @@ namespace BR
 			return *this;
 		}
 
+		WeakPointer& operator = (WeakPointer&& src)
+		{
+			ReleaseReference();
+
+			if (src.m_pObject == nullptr || src.m_pObject->GetReferenceCount() == 0)
+				return *this;
+
+			m_pObject = src.m_pObject;
+			src.m_pObject = nullptr;
+
+			return *this;
+		}
+
 	};
 
 	template<class ClassType>
@@ -469,6 +505,13 @@ namespace BR
 		WeakPointerT<ClassType>& operator = (const WeakPointerT<ClassType>& src)
 		{
 			__super::operator = (src);
+
+			return *this;
+		}
+
+		WeakPointerT<ClassType>& operator = (WeakPointerT<ClassType>&& src)
+		{
+			__super::operator = (std::forward<WeakPointerT<ClassType>>(src));
 
 			return *this;
 		}

@@ -1,8 +1,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 // 
-// CopyRight (c) 2013 The Braves
+// CopyRight (c) 2013 Blue3k
 // 
-// Author : MadK
+// Author : Blue3k
 //
 // Description : Base type definitions. 
 //	
@@ -89,7 +89,7 @@ typedef SBYTE				*PSBYTE;
 
 
 // Thread synchronize counter type
-#ifdef WIN64
+#ifdef _WIN64
 		// System sync counter type
 		typedef UINT64	CounterType;
 		typedef INT64	SignedCounterType;
@@ -109,37 +109,6 @@ typedef SBYTE				*PSBYTE;
 
 
 
-////////////////////////////////////////////////////////////////////////////////
-//
-//	Debugger display types
-//
-
-
-struct __time32
-{
-};
-
-struct __time64
-{
-};
-
-struct __UTF8
-{
-	char ch[1];
-};
-
-
-
-////////////////////////////////////////////////////////////////////////////////
-//
-//	Auxiliary types
-//
-
-// Null type for parameter probing
-struct NullType
-{
-	DWORD __NullTypeDummy__;
-};
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -149,11 +118,6 @@ struct NullType
 
 #define FORCEINLINE __forceinline
 
-#ifdef DEBUG
-#define DEBUG_DYNAMIC_CAST(TargetType,src) (dynamic_cast<TargetType>(src))
-#else
-#define DEBUG_DYNAMIC_CAST(TargetType,src) ((TargetType)(src))
-#endif
 
 // disable unreferenced label warnning (Proc_End)
 #pragma warning( disable : 4102 )

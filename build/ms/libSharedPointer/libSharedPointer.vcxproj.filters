@@ -48,9 +48,6 @@
     <ClInclude Include="..\..\..\src\Common\BrAssert.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\src\Common\ClassUtil.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\Thread\SystemSynchronize.h">
       <Filter>Thread</Filter>
     </ClInclude>
